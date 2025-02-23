@@ -1,9 +1,6 @@
-import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'registration_page.dart';
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,43 +12,45 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> _loginWithEmailPassword() async {
-    FirebaseDatabase database = FirebaseDatabase.instance;
-    final firebaseApp = database.app;
-    final rtdb = FirebaseDatabase.instanceFor(app: firebaseApp, databaseURL: 'https://console.firebase.google.com/u/0/project/vpool-c8fdb/database/vpool-c8fdb-default-rtdb/data/~2F?fb_gclid=Cj0KCQiA_NC9BhCkARIsABSnSTYF-a4auabfDxKaXKUa8a0Jn9ZHIRv-m8rtzr5-QWE3ZdXewdpiuPUaArEcEALw_wcB');
-
-
-
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    var test = await rtdb.ref('/User/1/createdAt').get();
-    print(test);
-
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(content: Text('Please fill in all fields')),
       );
       return;
     }
 
-    // Send login request to Serverpod
-    final response = await http.post(
-      Uri.parse('http://localhost:8080/loginUser'), // Replace with your Serverpod endpoint
-      body: jsonEncode({'email': email, 'password': password}),
-      headers: {'Content-Type': 'application/json'},
-    );
+    try {
+      // Sign in with Firebase Authentication
+      final UserCredential userCredential =
+          await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    if (response.statusCode == 200) {
-      // Handle successful login
-      final data = jsonDecode(response.body);
-      print('Login successful: ${data['message']}');
-      Navigator.pushReplacementNamed(context, '/home'); // Navigate to home page
-    } else {
-      // Handle login error
+      // If login is successful, navigate to the home page
+      if (userCredential.user != null) {
+        Navigator.pushReplacementNamed(
+            context, '/home'); // Use the correct route name
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Login failed. Please try again.';
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found for this email.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Incorrect password.';
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: ${response.body}')),
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred. Please try again.')),
       );
     }
   }
@@ -95,7 +94,8 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailController,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            prefixIcon: Icon(Icons.email, color: Colors.blue.shade900),
+                            prefixIcon:
+                                Icon(Icons.email, color: Colors.blue.shade900),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -106,7 +106,8 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock, color: Colors.blue.shade900),
+                            prefixIcon:
+                                Icon(Icons.lock, color: Colors.blue.shade900),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -118,7 +119,8 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _loginWithEmailPassword,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue.shade900,
-                            padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -133,7 +135,8 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => RegistrationPage()),
+                              MaterialPageRoute(
+                                  builder: (context) => RegistrationPage()),
                             );
                           },
                           child: Text(

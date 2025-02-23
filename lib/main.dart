@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '/screens/login_page.dart';
+import '/screens/home_page.dart'; // Import your home page
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
-    await Firebase.initializeApp(
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
@@ -20,7 +22,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const LoginPage(), // Set LoginPage as the home screen
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const LoginPage(), // Login page as the initial route
+        '/home': (context) => const HomePage(), // Define the home route
+      },
     );
   }
 }

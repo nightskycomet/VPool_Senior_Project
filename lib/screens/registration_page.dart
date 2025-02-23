@@ -1,7 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 class RegistrationPage extends StatefulWidget {
@@ -16,39 +15,67 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneNumberController = TextEditingController();
-  final _profilePictureUrlController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> _registerUser() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final phoneNumber = _phoneNumberController.text.trim();
-    var uuid = Uuid();
-  
-  DatabaseReference ref = FirebaseDatabase.instance.ref("User/${uuid.v4()}");
-
-    await ref.set({
-      "email": email,
-      "name": name,
-      "password": password,
-      "phoneNumber": phoneNumber,
-      "rider": true,
-      "createdAt": DateTime.now(),
-    });
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill in all required fields')),
+        const SnackBar(content: Text('Please fill in all required fields')),
       );
       return;
     }
+
+    try {
+      // Register user in Firebase Authentication
+      final UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Get the user ID from Firebase Authentication
+      final String userId = userCredential.user!.uid;
+
+      // Store additional user data in Realtime Database
+      DatabaseReference ref = FirebaseDatabase.instance.ref("Users/$userId");
+      await ref.set({
+        "email": email,
+        "name": name,
+        "phoneNumber": phoneNumber,
+        "rider": true,
+        "createdAt": DateTime.now().toIso8601String(),
+      });
+
+      // Navigate to the home page after successful registration
+      Navigator.pushReplacementNamed(
+          context, '/home'); // Use the correct route name
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Registration failed. Please try again.';
+      if (e.code == 'weak-password') {
+        errorMessage = 'The password is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage = 'An account already exists for this email.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred. Please try again.')),
+      );
+    }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sign Up'),
+        title: const Text('Sign Up'),
         backgroundColor: Colors.blue.shade900,
       ),
       body: Container(
@@ -129,6 +156,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         ),
                       ),
                     ),
+                    SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: _registerUser,
                       style: ElevatedButton.styleFrom(
