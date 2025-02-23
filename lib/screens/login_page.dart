@@ -26,17 +26,14 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      // Sign in with Firebase Authentication
       final UserCredential userCredential =
           await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // If login is successful, navigate to the home page
       if (userCredential.user != null) {
-        Navigator.pushReplacementNamed(
-            context, '/home'); // Use the correct route name
+        Navigator.pushReplacementNamed(context, '/home');
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Login failed. Please try again.';
@@ -63,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.blue.shade50, Colors.blue.shade200],
+            colors: [Colors.blue.shade900, Colors.black],
           ),
         ),
         child: Center(
@@ -77,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
+                    color: Colors.white,
                   ),
                 ),
                 SizedBox(height: 24),
@@ -86,6 +83,7 @@ class _LoginPageState extends State<LoginPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
+                  color: Colors.blue.shade800,
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
@@ -94,31 +92,33 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailController,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            prefixIcon:
-                                Icon(Icons.email, color: Colors.blue.shade900),
+                            labelStyle: TextStyle(color: Colors.white),
+                            prefixIcon: Icon(Icons.email, color: Colors.white),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
+                          style: TextStyle(color: Colors.white),
                         ),
                         SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            prefixIcon:
-                                Icon(Icons.lock, color: Colors.blue.shade900),
+                            labelStyle: TextStyle(color: Colors.white),
+                            prefixIcon: Icon(Icons.lock, color: Colors.white),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           obscureText: true,
+                          style: TextStyle(color: Colors.white),
                         ),
                         SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: _loginWithEmailPassword,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade900,
+                            backgroundColor: Colors.black,
                             padding: EdgeInsets.symmetric(
                                 horizontal: 32, vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -141,7 +141,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: Text(
                             'Don\'t have an account? Sign Up',
-                            style: TextStyle(color: Colors.blue.shade900),
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ],

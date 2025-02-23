@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
@@ -31,17 +30,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
 
     try {
-      // Register user in Firebase Authentication
       final UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Get the user ID from Firebase Authentication
       final String userId = userCredential.user!.uid;
 
-      // Store additional user data in Realtime Database
       DatabaseReference ref = FirebaseDatabase.instance.ref("Users/$userId");
       await ref.set({
         "email": email,
@@ -51,9 +47,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         "createdAt": DateTime.now().toIso8601String(),
       });
 
-      // Navigate to the home page after successful registration
-      Navigator.pushReplacementNamed(
-          context, '/home'); // Use the correct route name
+      Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Registration failed. Please try again.';
       if (e.code == 'weak-password') {
@@ -83,7 +77,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.blue.shade50, Colors.blue.shade200],
+            colors: [Colors.blue.shade900, Colors.black],
           ),
         ),
         child: Center(
@@ -94,6 +88,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
+              color: Colors.blue.shade800,
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
@@ -104,7 +99,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                        color: Colors.white,
                       ),
                     ),
                     SizedBox(height: 24),
@@ -112,55 +107,59 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       controller: _nameController,
                       decoration: InputDecoration(
                         labelText: 'Full Name',
-                        prefixIcon:
-                            Icon(Icons.person, color: Colors.blue.shade900),
+                        labelStyle: TextStyle(color: Colors.white),
+                        prefixIcon: Icon(Icons.person, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      style: TextStyle(color: Colors.white),
                     ),
                     SizedBox(height: 16),
                     TextField(
                       controller: _emailController,
                       decoration: InputDecoration(
                         labelText: 'Email',
-                        prefixIcon:
-                            Icon(Icons.email, color: Colors.blue.shade900),
+                        labelStyle: TextStyle(color: Colors.white),
+                        prefixIcon: Icon(Icons.email, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      style: TextStyle(color: Colors.white),
                     ),
                     SizedBox(height: 16),
                     TextField(
                       controller: _passwordController,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon:
-                            Icon(Icons.lock, color: Colors.blue.shade900),
+                        labelStyle: TextStyle(color: Colors.white),
+                        prefixIcon: Icon(Icons.lock, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       obscureText: true,
+                      style: TextStyle(color: Colors.white),
                     ),
                     SizedBox(height: 16),
                     TextField(
                       controller: _phoneNumberController,
                       decoration: InputDecoration(
                         labelText: 'Phone Number (Optional)',
-                        prefixIcon:
-                            Icon(Icons.phone, color: Colors.blue.shade900),
+                        labelStyle: TextStyle(color: Colors.white),
+                        prefixIcon: Icon(Icons.phone, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      style: TextStyle(color: Colors.white),
                     ),
                     SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: _registerUser,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade900,
+                        backgroundColor: Colors.black,
                         padding:
                             EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         shape: RoundedRectangleBorder(
