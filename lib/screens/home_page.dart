@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:vpool/screens/map_page.dart';
+import 'package:vpool/screens/profile_page.dart';
+import 'package:vpool/screens/rides_page.dart';
+import 'package:vpool/screens/settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,7 +14,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _pages = [
+  // Remove 'const' from the list since the widgets are not const
+  static final List<Widget> _pages = [
     RidesPage(),
     UserProfilePage(),
     MapPage(),
@@ -36,7 +41,8 @@ class _HomePageState extends State<HomePage> {
         onTap: _onItemTapped,
         selectedItemColor: Colors.blue.shade900,
         unselectedItemColor: Colors.grey,
-        items: const [
+        // Remove 'const' from the items list
+        items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.directions_car),
             label: 'Rides',
@@ -54,54 +60,6 @@ class _HomePageState extends State<HomePage> {
             label: 'Settings',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class RidesPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Rides Page',
-        style: TextStyle(fontSize: 24),
-      ),
-    );
-  }
-}
-
-class UserProfilePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'User Profile Page',
-        style: TextStyle(fontSize: 24),
-      ),
-    );
-  }
-}
-
-class MapPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Map Page',
-        style: TextStyle(fontSize: 24),
-      ),
-    );
-  }
-}
-
-class SettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Settings Page',
-        style: TextStyle(fontSize: 24),
       ),
     );
   }
