@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "785538152739",
+    "firebase_url": "https://vpool-c8fdb-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "vpool-c8fdb",
+    "storage_bucket": "vpool-c8fdb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:785538152739:android:1c1df3df5be1b55bbf7496",
+        "android_client_info": {
+          "package_name": "com.example.vpool"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrSbTds4G-ySZTU7f2czGFUsTMSZEjYX4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
