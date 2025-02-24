@@ -1,10 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:vpool/screens/Main/add_ride_page.dart';
 import 'package:vpool/screens/Main/map_page.dart';
 import 'package:vpool/screens/Main/profile_page.dart';
 import 'package:vpool/screens/Main/rides_page.dart';
+import 'package:vpool/screens/Main/search_page.dart';
 import 'package:vpool/screens/Main/settings_page.dart';
-
 
 class HomePage extends StatefulWidget {
   final String role;
@@ -17,18 +18,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-
   late final List<Widget> _pages;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
     super.initState();
     // Initialize pages based on the user's role
     _pages = [
-      if (widget.role == 'rider') RidesPage(),
-      if (widget.role == 'driver') AddRidePage(), // Only show for drivers
+      if (widget.role == 'rider' || widget.role == 'both') RidesPage(),
+      if (widget.role == 'driver' || widget.role == 'both') AddRidePage(),
       MapPage(),
-      ProfilePage(),
+      UserSearchPage(),
+      ProfilePage(userId: _auth.currentUser?.uid), // Pass actual userId here
       SettingsPage(),
     ];
   }
@@ -43,7 +45,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home'),
+        title: const Text('Home'),
         backgroundColor: Colors.blue.shade900,
       ),
       body: _pages[_selectedIndex],
@@ -53,24 +55,29 @@ class _HomePageState extends State<HomePage> {
         selectedItemColor: Colors.blue.shade900,
         unselectedItemColor: Colors.grey,
         items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_car),
-            label: 'Rides',
-          ),
-          if (widget.role == 'driver')
+          if (widget.role == 'rider' || widget.role == 'both')
             BottomNavigationBarItem(
-              icon: Icon(Icons.add),
+              icon: const Icon(Icons.directions_car),
+              label: 'Rides',
+            ),
+          if (widget.role == 'driver' || widget.role == 'both')
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.add),
               label: 'Add Ride',
             ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.map),
             label: 'Map',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Person',
+          ),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
           ),

@@ -172,12 +172,17 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      items: <String>['rider', 'driver']
+                      dropdownColor: Colors.blue.shade800,
+                      items: <String>['rider', 'driver', 'both']
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(
-                            value == 'driver' ? 'Driver' : 'Rider',
+                            value == 'driver'
+                                ? 'Driver'
+                                : value == 'rider'
+                                    ? 'Rider'
+                                    : 'Both (Rider & Driver)',
                             style: TextStyle(color: Colors.white),
                           ),
                         );
