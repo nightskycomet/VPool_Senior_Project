@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'registration_page.dart';
+import 'package:vpool/screens/registration_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,6 +14,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
   Future<void> _loginWithEmailPassword() async {
     final email = _emailController.text.trim();
@@ -26,15 +28,22 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
+      // Sign in with Firebase Authentication
       final UserCredential userCredential =
           await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      if (userCredential.user != null) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      // Get the user ID
+      final String userId = userCredential.user!.uid;
+
+      // Fetch the user's role from the Realtime Database
+      final snapshot = await _database.child("Users/$userId/role").get();
+      final String role = snapshot.value as String;
+
+      // Navigate to the home page with the user's role
+      Navigator.pushReplacementNamed(context, '/home', arguments: role);
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Login failed. Please try again.';
       if (e.code == 'user-not-found') {

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:vpool/screens/map_page.dart';
-import 'package:vpool/screens/profile_page.dart';
-import 'package:vpool/screens/rides_page.dart';
-import 'package:vpool/screens/settings_page.dart';
+import 'package:vpool/screens/Main/add_ride_page.dart';
+import 'package:vpool/screens/Main/map_page.dart';
+import 'package:vpool/screens/Main/profile_page.dart';
+import 'package:vpool/screens/Main/rides_page.dart';
+import 'package:vpool/screens/Main/settings_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String userRole;
+
+  const HomePage({super.key, required this.userRole});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -14,13 +17,20 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // Remove 'const' from the list since the widgets are not const
-  static final List<Widget> _pages = [
-    RidesPage(),
-    UserProfilePage(),
-    MapPage(),
-    SettingsPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize pages based on the user's role
+    _pages = [
+      RidesPage(),
+      if (widget.userRole == 'driver') AddRidePage(), // Only show for drivers
+      MapPage(),
+      ProfilePage(),
+      SettingsPage(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -41,19 +51,23 @@ class _HomePageState extends State<HomePage> {
         onTap: _onItemTapped,
         selectedItemColor: Colors.blue.shade900,
         unselectedItemColor: Colors.grey,
-        // Remove 'const' from the items list
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.directions_car),
             label: 'Rides',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          if (widget.userRole == 'driver')
+            BottomNavigationBarItem(
+              icon: Icon(Icons.add),
+              label: 'Add Ride',
+            ),
           BottomNavigationBarItem(
             icon: Icon(Icons.map),
             label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

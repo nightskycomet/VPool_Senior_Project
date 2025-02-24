@@ -15,6 +15,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final _passwordController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  String _selectedRole = 'rider'; // Default role is 'rider'
 
   Future<void> _registerUser() async {
     final name = _nameController.text.trim();
@@ -30,23 +32,26 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
 
     try {
+      // Register user in Firebase Authentication
       final UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
+      // Get the user ID from Firebase Authentication
       final String userId = userCredential.user!.uid;
 
-      DatabaseReference ref = FirebaseDatabase.instance.ref("Users/$userId");
-      await ref.set({
+      // Store additional user data in Realtime Database
+      await _database.child("Users/$userId").set({
         "email": email,
         "name": name,
         "phoneNumber": phoneNumber,
-        "rider": true,
+        "role": _selectedRole, // Store the user's role
         "createdAt": DateTime.now().toIso8601String(),
       });
 
+      // Navigate to the home page after successful registration
       Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Registration failed. Please try again.';
@@ -154,6 +159,33 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         ),
                       ),
                       style: TextStyle(color: Colors.white),
+                    ),
+                    SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedRole,
+                      decoration: InputDecoration(
+                        labelText: 'Role',
+                        labelStyle: TextStyle(color: Colors.white),
+                        prefixIcon: Icon(Icons.directions_car, color: Colors.white),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      items: <String>['rider', 'driver']
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value == 'driver' ? 'Driver' : 'Rider',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedRole = newValue!;
+                        });
+                      },
                     ),
                     SizedBox(height: 24),
                     ElevatedButton(
