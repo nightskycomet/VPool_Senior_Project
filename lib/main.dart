@@ -1,31 +1,38 @@
 import 'package:flutter/material.dart';
-import '/screens/login_page.dart';
-import '/screens/home_page.dart'; // Import your home page
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:vpool/screens/home_page.dart';
+import 'package:vpool/screens/login_page.dart';
+import 'firebase_options.dart'; // Generated file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Login App',
+      title: 'VPool',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
       initialRoute: '/',
+      onGenerateRoute: (settings) {
+        // Handle navigation to the HomePage with arguments
+        if (settings.name == '/home') {
+          final String role = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (context) => HomePage(role: role),
+          );
+        }
+        return null;
+      },
       routes: {
-        '/': (context) => const LoginPage(), // Login page as the initial route
-        '/home': (context) => const HomePage(userRole: '',), // Define the home route
+        '/': (context) => LoginPage(), // LoginPage as the initial route
       },
     );
   }

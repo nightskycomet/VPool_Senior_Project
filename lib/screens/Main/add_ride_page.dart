@@ -37,7 +37,7 @@ class _AddRidePageState extends State<AddRidePage> {
       };
 
       // Save the ride to Firebase Realtime Database
-      await _database.child("rides/$rideId").set(rideData);
+      await _database.child("Rides/$rideId").set(rideData);
 
       // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(

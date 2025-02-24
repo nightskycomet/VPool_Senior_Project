@@ -38,11 +38,11 @@ class _LoginPageState extends State<LoginPage> {
       // Get the user ID
       final String userId = userCredential.user!.uid;
 
-      // Fetch the user's role from the Realtime Database
+      // Fetch the user's role (string) from the Realtime Database
       final snapshot = await _database.child("Users/$userId/role").get();
       final String role = snapshot.value as String;
 
-      // Navigate to the home page with the user's role
+      // Navigate to the home page with the user's role as an argument
       Navigator.pushReplacementNamed(context, '/home', arguments: role);
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Login failed. Please try again.';

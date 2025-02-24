@@ -16,7 +16,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final _phoneNumberController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
-  String _selectedRole = 'rider'; // Default role is 'rider'
+  String _role = 'rider'; // Default role is 'rider'
 
   Future<void> _registerUser() async {
     final name = _nameController.text.trim();
@@ -47,7 +47,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         "email": email,
         "name": name,
         "phoneNumber": phoneNumber,
-        "role": _selectedRole, // Store the user's role
+        "role": _role, // Store the user's role as a string
         "createdAt": DateTime.now().toIso8601String(),
       });
 
@@ -162,11 +162,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ),
                     SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedRole,
+                      value: _role,
                       decoration: InputDecoration(
                         labelText: 'Role',
                         labelStyle: TextStyle(color: Colors.white),
-                        prefixIcon: Icon(Icons.directions_car, color: Colors.white),
+                        prefixIcon:
+                            Icon(Icons.directions_car, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -183,7 +184,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       }).toList(),
                       onChanged: (String? newValue) {
                         setState(() {
-                          _selectedRole = newValue!;
+                          _role = newValue!;
                         });
                       },
                     ),

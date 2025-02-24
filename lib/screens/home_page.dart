@@ -5,10 +5,11 @@ import 'package:vpool/screens/Main/profile_page.dart';
 import 'package:vpool/screens/Main/rides_page.dart';
 import 'package:vpool/screens/Main/settings_page.dart';
 
-class HomePage extends StatefulWidget {
-  final String userRole;
 
-  const HomePage({super.key, required this.userRole});
+class HomePage extends StatefulWidget {
+  final String role;
+
+  const HomePage({super.key, required this.role});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -24,8 +25,8 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // Initialize pages based on the user's role
     _pages = [
-      RidesPage(),
-      if (widget.userRole == 'driver') AddRidePage(), // Only show for drivers
+      if (widget.role == 'rider') RidesPage(),
+      if (widget.role == 'driver') AddRidePage(), // Only show for drivers
       MapPage(),
       ProfilePage(),
       SettingsPage(),
@@ -56,7 +57,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.directions_car),
             label: 'Rides',
           ),
-          if (widget.userRole == 'driver')
+          if (widget.role == 'driver')
             BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add Ride',
