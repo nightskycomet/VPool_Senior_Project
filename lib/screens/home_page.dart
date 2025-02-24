@@ -1,11 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:vpool/screens/Main/add_ride_page.dart';
-import 'package:vpool/screens/Main/map_page.dart';
-import 'package:vpool/screens/Main/profile_page.dart';
-import 'package:vpool/screens/Main/rides_page.dart';
-import 'package:vpool/screens/Main/search_page.dart';
-import 'package:vpool/screens/Main/settings_page.dart';
+import 'package:vpool/screens/Main%20Pages/add_ride_page.dart';
+import 'package:vpool/screens/Miscellanous%20Pages/ride_request_page.dart';
+import 'package:vpool/screens/Util%20Pages/map_page.dart';
+import 'package:vpool/screens/Main%20Pages/profile_page.dart';
+import 'package:vpool/screens/Main%20Pages/rides_page.dart';
+import 'package:vpool/screens/Miscellanous%20Pages/search_page.dart';
+import 'package:vpool/screens/Util%20Pages/settings_page.dart';
 
 class HomePage extends StatefulWidget {
   final String role;
@@ -28,6 +29,7 @@ class _HomePageState extends State<HomePage> {
     _pages = [
       if (widget.role == 'rider' || widget.role == 'both') RidesPage(),
       if (widget.role == 'driver' || widget.role == 'both') AddRidePage(),
+      if (widget.role == 'driver' || widget.role == 'both') RideRequestPage(),
       MapPage(),
       UserSearchPage(),
       ProfilePage(userId: _auth.currentUser?.uid),
@@ -64,6 +66,11 @@ class _HomePageState extends State<HomePage> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add Ride',
+            ),
+          if (widget.role == 'driver' || widget.role == 'both')
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.alarm),
+              label: 'Pending Ride Requests',
             ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.map),

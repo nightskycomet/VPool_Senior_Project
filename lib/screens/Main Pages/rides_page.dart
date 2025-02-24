@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:vpool/screens/Main/ride_details_page.dart';
+import 'package:vpool/screens/Miscellanous%20Pages/ride_details_page.dart';
 
 class RidesPage extends StatelessWidget {
   const RidesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final DatabaseReference _database = FirebaseDatabase.instance.ref().child('rides');
+    final DatabaseReference database = FirebaseDatabase.instance.ref().child('Rides');
 
     return Scaffold(
       appBar: AppBar(
@@ -15,7 +15,7 @@ class RidesPage extends StatelessWidget {
         backgroundColor: Colors.blue.shade900,
       ),
       body: StreamBuilder<DatabaseEvent>(
-        stream: _database.onValue,
+        stream: database.onValue,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());

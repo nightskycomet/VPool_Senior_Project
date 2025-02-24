@@ -26,8 +26,11 @@ class _AddRidePageState extends State<AddRidePage> {
       final rideId = uuid.v4(); // Generate a unique ride ID
       final driverId = _auth.currentUser!.uid; // Get the current driver's ID
 
+      // Parse availableSeats as an integer
+      final availableSeats = int.tryParse(_availableSeatsController.text) ?? 0;
+
       final rideData = {
-        "availableSeats": _availableSeatsController.text,
+        "availableSeats": availableSeats, // Store as a number
         "carModel": _carModelController.text,
         "createdAt": DateTime.now().toIso8601String(),
         "driverId": driverId,
@@ -76,6 +79,10 @@ class _AddRidePageState extends State<AddRidePage> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the number of available seats';
+                  }
+                  final seats = int.tryParse(value);
+                  if (seats == null || seats <= 0) {
+                    return 'Please enter a valid number of seats';
                   }
                   return null;
                 },

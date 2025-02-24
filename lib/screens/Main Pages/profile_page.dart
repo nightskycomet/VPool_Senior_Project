@@ -13,16 +13,15 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   Map<String, dynamic> _userData = {}; // Initialize as an empty map
   bool _isLoading = true;
   late String _userId; // Declare userId
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
   @override
   void initState() {
     super.initState();
-    // If no userId is passed, default to the current logged-in user's UID
     _userId = widget.userId ?? _auth.currentUser!.uid; // Use currentUser UID if userId is null
     _fetchUserProfile();
   }
@@ -31,14 +30,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _fetchUserProfile() async {
     final snapshot = await _database.child("Users/$_userId").get();
     
-    // Check if the user data exists
     if (snapshot.exists) {
       setState(() {
         _userData = Map<String, dynamic>.from(snapshot.value as Map);
         _isLoading = false;
       });
     } else {
-      setState(() => _isLoading = false); // If no data exists, stop loading
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User data not found')),
       );
@@ -86,7 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     title: const Text('Phone Number'),
                     subtitle: Text(_userData["phoneNumber"] ?? 'No Phone Number'),
                   ),
-                  // Rating (Assumed to be fetched and calculated from Firebase)
+                  // Rating
                   FutureBuilder<double>(
                     future: _getUserRating(),
                     builder: (context, snapshot) {
@@ -104,12 +102,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       );
                     },
                   ),
-                  // Ride History (Click to navigate)
+                  // Ride History
                   ListTile(
                     leading: const Icon(Icons.history),
                     title: const Text('Ride History'),
                     onTap: () {
-                      // Navigate to ride history page if needed
+                      // Navigate to ride history page
                     },
                   ),
                 ],
@@ -118,7 +116,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Fetch the user's average rating (if ratings are stored in a separate node)
+  // Fetch the user's average rating
   Future<double> _getUserRating() async {
     double totalRating = 0.0;
     int ratingCount = 0;

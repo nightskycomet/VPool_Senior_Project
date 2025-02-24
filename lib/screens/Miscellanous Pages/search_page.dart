@@ -1,6 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:vpool/screens/Main/profile_page.dart';
+import 'package:vpool/screens/Main%20Pages/profile_page.dart';
 
 class UserSearchPage extends StatefulWidget {
   const UserSearchPage({super.key});
