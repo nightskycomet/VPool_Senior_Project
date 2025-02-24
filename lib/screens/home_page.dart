@@ -30,7 +30,7 @@ class _HomePageState extends State<HomePage> {
       if (widget.role == 'driver' || widget.role == 'both') AddRidePage(),
       MapPage(),
       UserSearchPage(),
-      ProfilePage(userId: _auth.currentUser?.uid), // Pass actual userId here
+      ProfilePage(userId: _auth.currentUser?.uid),
       SettingsPage(),
     ];
   }
@@ -56,13 +56,13 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.grey,
         items: [
           if (widget.role == 'rider' || widget.role == 'both')
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.directions_car),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.directions_car),
               label: 'Rides',
             ),
           if (widget.role == 'driver' || widget.role == 'both')
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.add),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.add),
               label: 'Add Ride',
             ),
           const BottomNavigationBarItem(
@@ -75,7 +75,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: 'Person',
+            label: 'Profile',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.settings),
