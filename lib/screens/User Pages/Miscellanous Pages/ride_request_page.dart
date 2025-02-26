@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:vpool/screens/Main%20Pages/profile_page.dart';
+import 'package:vpool/screens/User%20Pages/Main%20Pages/profile_page.dart';
 
 class RideRequestPage extends StatefulWidget {
   const RideRequestPage({super.key});

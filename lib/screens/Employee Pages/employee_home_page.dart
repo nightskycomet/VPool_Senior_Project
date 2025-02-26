@@ -13,7 +13,6 @@ class EmployeeHomePage extends StatefulWidget {
 
 class _EmployeeHomePageState extends State<EmployeeHomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DatabaseReference _database = FirebaseDatabase.instance.ref();
   int _selectedIndex = 0; // For sidebar navigation
 
   // Placeholder for different pages

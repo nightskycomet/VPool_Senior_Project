@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:vpool/screens/Main%20Pages/in_group_chats.dart';
+import 'package:vpool/screens/User%20Pages/Main%20Pages/in_group_chats.dart';
 
 class GroupChatsPage extends StatefulWidget {
   const GroupChatsPage({super.key});

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:vpool/screens/Miscellanous%20Pages/ride_details_page.dart';
+import 'package:vpool/screens/User%20Pages/Miscellanous%20Pages/ride_details_page.dart';
 
 class AddRidePage extends StatefulWidget {
   const AddRidePage({super.key});

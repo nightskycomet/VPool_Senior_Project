@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:vpool/screens/Main%20Pages/profile_page.dart';
-import 'package:vpool/screens/Util%20Pages/help_and_faq_page.dart';
-import 'package:vpool/screens/login_page.dart';
+import 'package:vpool/screens/User%20Pages/Main%20Pages/profile_page.dart';
+import 'package:vpool/screens/User%20Pages/Util%20Pages/help_and_faq_page.dart';
+import 'package:vpool/screens/Shared%20Pages/login_page.dart';
 import 'change_password_page.dart';
 
 class SettingsPage extends StatelessWidget {
