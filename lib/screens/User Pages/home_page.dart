@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:vpool/screens/Main%20Pages/add_ride_page.dart';
 import 'package:vpool/screens/Main%20Pages/group_chats_page.dart';
-import 'package:vpool/screens/Miscellanous%20Pages/ride_request_page.dart';
 import 'package:vpool/screens/Util%20Pages/map_page.dart';
 import 'package:vpool/screens/Main%20Pages/profile_page.dart';
 import 'package:vpool/screens/Main%20Pages/rides_page.dart';
@@ -33,7 +32,6 @@ class _HomePageState extends State<HomePage> {
       GroupChatsPage(),
       MapPage(),
       UserSearchPage(),
-      ProfilePage(userId: _auth.currentUser?.uid),
       SettingsPage(),
     ];
   }
@@ -79,10 +77,6 @@ class _HomePageState extends State<HomePage> {
           const BottomNavigationBarItem(
             icon: Icon(Icons.search),
             label: 'Search',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.settings),

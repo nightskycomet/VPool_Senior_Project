@@ -39,8 +39,8 @@ class RidesPage extends StatelessWidget {
                 margin: EdgeInsets.all(8),
                 child: ListTile(
                   leading: Icon(Icons.directions_car, color: Colors.blue.shade900),
-                  title: Text(ride["carModel"] ?? 'Ride ${index + 1}'),
-                  subtitle: Text('${ride["startLocation"]} to ${ride["endLocation"]}'),
+                  title: Text('${ride["startLocation"]} to ${ride["endLocation"]}'),
+                  subtitle: Text(ride["carModel"]),
                   trailing: Icon(Icons.arrow_forward, color: Colors.blue.shade900),
                   onTap: () {
                     Navigator.push(

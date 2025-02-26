@@ -123,8 +123,10 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
   }
 
   Future<void> _requestToJoinRide() async {
-    if (_isDriver || _hasRequested || widget.ride["availableSeats"] <= 0)
+    if (_isDriver || _hasRequested || widget.ride["availableSeats"] <= 0){ 
       return;
+    }
+      
 
     if (mounted) {
       setState(() => _isLoading = true);
@@ -280,7 +282,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                           );
                         },
                       );
-                    }).toList(),
+                    })
                   ],
                 ),
               ),

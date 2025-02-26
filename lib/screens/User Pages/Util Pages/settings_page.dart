@@ -1,11 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:vpool/screens/Main%20Pages/profile_page.dart';
 import 'package:vpool/screens/Util%20Pages/help_and_faq_page.dart';
 import 'package:vpool/screens/login_page.dart';
 import 'change_password_page.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  SettingsPage({super.key});
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   void _confirmLogout(BuildContext context) {
     showDialog(
@@ -36,6 +39,8 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userId = _auth.currentUser?.uid; // Get the current user's ID
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Settings'),
@@ -45,16 +50,39 @@ class SettingsPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            Divider(),
             SwitchListTile(
               title: Text('Notifications'),
               subtitle: Text('Enable or disable notifications'),
-              value: true, 
+              value: true,
               onChanged: (value) {
                 // Update notification settings
               },
               activeColor: Colors.blue.shade900,
             ),
             Divider(),
+            ListTile(
+              leading: Icon(Icons.person, color: Colors.blue.shade900),
+              title: Text('Your Profile'),
+              onTap: () {
+                if (userId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfilePage(userId: userId),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text('Unable to fetch profile. Please try again.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
             ListTile(
               leading: Icon(Icons.lock, color: Colors.blue.shade900),
               title: Text('Change Password'),
