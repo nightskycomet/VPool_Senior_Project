@@ -18,7 +18,7 @@ dependencies:
   http: ^1.3.0
   firebase_storage: any
   image_picker: any
-  firebase_messaging: ^14.9.4
+  fluttertoast: ^8.2.2 
 
 dev_dependencies:
   flutter_test:

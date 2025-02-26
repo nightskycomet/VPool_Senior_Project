@@ -18,6 +18,8 @@ class _RideRequestPageState extends State<RideRequestPage> {
       FirebaseDatabase.instance.ref().child('Rides');
   final DatabaseReference _userDatabase =
       FirebaseDatabase.instance.ref().child('Users');
+  final DatabaseReference _groupChatsDatabase =
+      FirebaseDatabase.instance.ref().child('GroupChats');
   List<Map<String, dynamic>> _requests = [];
   bool _isLoading = true;
 
@@ -29,8 +31,6 @@ class _RideRequestPageState extends State<RideRequestPage> {
 
   Future<void> _fetchPendingRequests() async {
     final driverId = _auth.currentUser!.uid; // Current user's ID (driverId)
-    print('Driver ID: $driverId');
-
     try {
       // Step 1: Fetch all pending requests that have the current driver's ID
       final requestSnapshot = await _rideRequestDatabase
@@ -39,7 +39,6 @@ class _RideRequestPageState extends State<RideRequestPage> {
           .get();
 
       if (!requestSnapshot.exists) {
-        print('No pending requests found for driver: $driverId');
         setState(() => _isLoading = false);
         return;
       }
@@ -61,102 +60,101 @@ class _RideRequestPageState extends State<RideRequestPage> {
         }
       }
 
-      print('Total pending requests: ${requests.length}');
       setState(() {
         _requests = requests;
         _isLoading = false;
       });
     } catch (e) {
-      print('Error fetching pending requests: $e');
       setState(() => _isLoading = false);
     }
   }
 
-Future<void> _updateRequestStatus(String requestId, String status) async {
-  try {
-    // Get request details
-    final requestSnapshot = await _rideRequestDatabase.child(requestId).get();
-    final rideId = requestSnapshot.child('rideID').value.toString();
-    final userId = requestSnapshot.child('userId').value.toString();
+  Future<void> _updateRequestStatus(String requestId, String status) async {
+    try {
+      // Get request details
+      final requestSnapshot = await _rideRequestDatabase.child(requestId).get();
+      final rideId = requestSnapshot.child('rideID').value.toString();
+      final userId = requestSnapshot.child('userId').value.toString();
 
-    if (status == 'accepted') {
-      // Fetch the ride info
-      final rideSnapshot = await _ridesDatabase.child(rideId).get();
 
-      // Check if the ride exists
-      if (!rideSnapshot.exists) {
-        print('Ride not found: $rideId');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ride not found!')),
-        );
-        return;
-      }
+      if (status == 'accepted') {
+        // Fetch the ride info
+        final rideSnapshot = await _ridesDatabase.child(rideId).get();
 
-      // Get availableSeats as a number
-      final availableSeats = rideSnapshot.child('availableSeats').value;
+        final availableSeats =
+            rideSnapshot.child('availableSeats').value as int? ?? 0;
 
-      // Handle missing or invalid availableSeats
-      if (availableSeats == null || availableSeats is! int) {
-        print('Invalid available seats value for ride: $rideId');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid available seats value!')),
-        );
-        return;
-      }
+        if (availableSeats > 0) {
+          // Add the rider to the ride (add to riders list)
+          final ridersList = rideSnapshot.child('riders').exists
+              ? List<String>.from(
+                  (rideSnapshot.child('riders').value as List<dynamic>)
+                      .map((e) => e.toString())
+                      .toList())
+              : <String>[];
 
-      print('Available Seats: $availableSeats');
+          // Add the rider's ID to the list
+          ridersList.add(userId);
 
-      if (availableSeats > 0) {
-        // Add the rider to the ride (add to riders list)
-        final ridersList = rideSnapshot.child('riders').exists
-            ? List<String>.from(rideSnapshot.child('riders').value as List)
-            : <String>[];
+          // Decrease available seats by 1
+          await _ridesDatabase.child(rideId).update({
+            'availableSeats': availableSeats - 1, // Update as a number
+            'riders': ridersList,
+          });
 
-        // Add the rider's ID to the list
-        ridersList.add(userId);
+          // Add the rider to the group chat
+          final groupChatSnapshot =
+              await _groupChatsDatabase.child(rideId).get();
+          if (groupChatSnapshot.exists) {
+            final groupChatRiders = groupChatSnapshot.child('riders').exists
+                ? List<String>.from(
+                    (groupChatSnapshot.child('riders').value as List<dynamic>)
+                        .map((e) => e.toString())
+                        .toList())
+                : <String>[];
+            groupChatRiders.add(userId);
+            await _groupChatsDatabase.child(rideId).update({
+              'riders': groupChatRiders,
+            });
+          }
 
-        // Decrease available seats by 1
-        await _ridesDatabase.child(rideId).update({
-          'availableSeats': availableSeats - 1, // Save as a number
-          'riders': ridersList,
-        });
+          // Update the request status to accepted
+          await _rideRequestDatabase
+              .child(requestId)
+              .update({'status': status});
 
-        // Update the request status to accepted
-        await _rideRequestDatabase.child(requestId).update({"status": status});
+          setState(() {
+            _requests
+                .removeWhere((request) => request['requestId'] == requestId);
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Request accepted and rider added to the ride!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No available seats!')),
+          );
+        }
+      } else if (status == 'rejected') {
+        // Update the request status to rejected
+        await _rideRequestDatabase.child(requestId).update({'status': status});
 
         setState(() {
-          // Remove the accepted request from the list
-          _requests.removeWhere((request) => request["requestId"] == requestId);
+          _requests.removeWhere((request) => request['requestId'] == requestId);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Request accepted and rider added to the ride!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No available seats!')),
+          SnackBar(content: Text('Request rejected!')),
         );
       }
-    } else if (status == 'rejected') {
-      // Update the request status to rejected
-      await _rideRequestDatabase.child(requestId).update({"status": status});
-
-      setState(() {
-        // Remove the rejected request from the list
-        _requests.removeWhere((request) => request["requestId"] == requestId);
-      });
-
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Request rejected!')),
+        SnackBar(content: Text('An error occurred. Please try again.')),
       );
     }
-  } catch (e) {
-    print('Error updating request status: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('An error occurred. Please try again.')),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -175,29 +173,31 @@ Future<void> _updateRequestStatus(String requestId, String status) async {
                     final request = _requests[index];
                     return ListTile(
                       leading: const Icon(Icons.person),
-                      title: Text(request["userName"]),
-                      subtitle: Text("Requested to join your ride"),
+                      title: Text(request['userName']),
+                      subtitle: Text('Requested to join your ride'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             icon: const Icon(Icons.check, color: Colors.green),
                             onPressed: () => _updateRequestStatus(
-                                request["requestId"], "accepted"),
+                                request['requestId'], 'accepted'),
                           ),
                           IconButton(
                             icon: const Icon(Icons.close, color: Colors.red),
                             onPressed: () => _updateRequestStatus(
-                                request["requestId"], "rejected"),
+                                request['requestId'], 'rejected'),
                           ),
                         ],
                       ),
                       onTap: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    ProfilePage(userId: request["userId"])));
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ProfilePage(userId: request['userId']),
+                          ),
+                        );
                       },
                     );
                   },

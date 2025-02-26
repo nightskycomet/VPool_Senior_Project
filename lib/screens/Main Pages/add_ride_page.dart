@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:vpool/screens/Miscellanous%20Pages/ride_details_page.dart';
 
 class AddRidePage extends StatefulWidget {
   const AddRidePage({super.key});
@@ -17,42 +18,80 @@ class _AddRidePageState extends State<AddRidePage> {
   final _startLocationController = TextEditingController();
   final _endLocationController = TextEditingController();
   final _startTimeController = TextEditingController();
+  final _gasMoneyController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
+
+  List<Map<String, dynamic>> _driverRides = []; // List of rides created by the driver
+  bool _isLoading = true; // Loading state
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDriverRides(); // Fetch rides when the page loads
+  }
+
+  Future<void> _fetchDriverRides() async {
+    final driverId = _auth.currentUser!.uid;
+
+    final ridesSnapshot = await _database.child("Rides").orderByChild("driverId").equalTo(driverId).get();
+    if (ridesSnapshot.exists) {
+      final rides = <Map<String, dynamic>>[];
+      for (var ride in ridesSnapshot.children) {
+        rides.add({
+          "id": ride.key,
+          "startLocation": ride.child("startLocation").value.toString(),
+          "endLocation": ride.child("endLocation").value.toString(),
+          "startTime": ride.child("startTime").value.toString(),
+          "availableSeats": ride.child("availableSeats").value.toString(),
+          "gasMoney": ride.child("gasMoney").value.toString(),
+          "driverId": ride.child("driverId").value.toString(),
+        });
+      }
+      setState(() {
+        _driverRides = rides;
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _addRide() async {
     if (_formKey.currentState!.validate()) {
       final uuid = Uuid();
-      final rideId = uuid.v4(); // Generate a unique ride ID
-      final driverId = _auth.currentUser!.uid; // Get the current driver's ID
+      final rideId = uuid.v4();
+      final driverId = _auth.currentUser!.uid;
 
-      // Parse availableSeats as an integer
       final availableSeats = int.tryParse(_availableSeatsController.text) ?? 0;
+      final gasMoney = _gasMoneyController.text;
 
       final rideData = {
-        "availableSeats": availableSeats, // Store as a number
+        "availableSeats": availableSeats,
         "carModel": _carModelController.text,
         "createdAt": DateTime.now().toIso8601String(),
         "driverId": driverId,
         "endLocation": _endLocationController.text,
         "startLocation": _startLocationController.text,
         "startTime": _startTimeController.text,
+        "gasMoney": gasMoney,
       };
 
-      // Save the ride to Firebase Realtime Database
       await _database.child("Rides/$rideId").set(rideData);
 
-      // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ride added successfully!')),
       );
 
-      // Clear the form
+      // Clear the form and refresh the list of rides
       _availableSeatsController.clear();
       _carModelController.clear();
       _startLocationController.clear();
       _endLocationController.clear();
       _startTimeController.clear();
+      _gasMoneyController.clear();
+
+      await _fetchDriverRides(); // Refresh the list of rides
     }
   }
 
@@ -69,6 +108,7 @@ class _AddRidePageState extends State<AddRidePage> {
           key: _formKey,
           child: ListView(
             children: [
+              // Add Ride Form
               TextFormField(
                 controller: _availableSeatsController,
                 decoration: InputDecoration(
@@ -143,6 +183,20 @@ class _AddRidePageState extends State<AddRidePage> {
                   return null;
                 },
               ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _gasMoneyController,
+                decoration: InputDecoration(
+                  labelText: 'Gas Money (e.g., \$in dollars or LBP)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the gas money amount';
+                  }
+                  return null;
+                },
+              ),
               SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _addRide,
@@ -155,6 +209,43 @@ class _AddRidePageState extends State<AddRidePage> {
                   style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),
+
+              // Display Current Open Rides
+              SizedBox(height: 32),
+              Text(
+                'Your Current Open Rides',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _driverRides.isEmpty
+                      ? Text('No open rides found.')
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: _driverRides.length,
+                          itemBuilder: (context, index) {
+                            final ride = _driverRides[index];
+                            return Card(
+                              margin: EdgeInsets.symmetric(vertical: 8),
+                              child: ListTile(
+                                title: Text('${ride["startLocation"]} to ${ride["endLocation"]}'),
+                                subtitle: Text(
+                                    'Time: ${ride["startTime"]}\nSeats: ${ride["availableSeats"]}\nGas Money: ${ride["gasMoney"]}'),
+                                onTap: () {
+                                  // Navigate to RideDetailsPage
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RideDetailsPage(ride: ride),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
             ],
           ),
         ),

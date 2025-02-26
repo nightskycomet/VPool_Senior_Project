@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:vpool/screens/Main%20Pages/add_ride_page.dart';
+import 'package:vpool/screens/Main%20Pages/group_chats_page.dart';
 import 'package:vpool/screens/Miscellanous%20Pages/ride_request_page.dart';
 import 'package:vpool/screens/Util%20Pages/map_page.dart';
 import 'package:vpool/screens/Main%20Pages/profile_page.dart';
@@ -29,7 +30,7 @@ class _HomePageState extends State<HomePage> {
     _pages = [
       if (widget.role == 'rider' || widget.role == 'both') RidesPage(),
       if (widget.role == 'driver' || widget.role == 'both') AddRidePage(),
-      if (widget.role == 'driver' || widget.role == 'both') RideRequestPage(),
+      GroupChatsPage(),
       MapPage(),
       UserSearchPage(),
       ProfilePage(userId: _auth.currentUser?.uid),
@@ -67,10 +68,9 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.add),
               label: 'Add Ride',
             ),
-          if (widget.role == 'driver' || widget.role == 'both')
             const BottomNavigationBarItem(
-              icon: Icon(Icons.alarm),
-              label: 'Pending Ride Requests',
+              icon: Icon(Icons.group),
+              label: 'Group Chats',
             ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.map),
