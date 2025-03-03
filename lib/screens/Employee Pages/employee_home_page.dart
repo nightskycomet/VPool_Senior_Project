@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:vpool/screens/Employee%20Pages/reports_page.dart'; // Import the ReportsPage
 
 class EmployeeHomePage extends StatefulWidget {
   final String role;
@@ -13,12 +14,18 @@ class EmployeeHomePage extends StatefulWidget {
 
 class _EmployeeHomePageState extends State<EmployeeHomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
   int _selectedIndex = 0; // For sidebar navigation
 
-  // Placeholder for different pages
-  static final List<Widget> _pages = [
-    ReportsPage(), // Replace with your ReportsPage widget
-    UserVerificationPage(), // Replace with your UserVerificationPage widget
+  // List of pages for the employee dashboard
+  final List<Widget> _pages = [
+    const ReportsPage(), // Reports Page
+    const Center( // Placeholder for User Verification Page
+      child: Text(
+        'User Verification Page',
+        style: TextStyle(fontSize: 24, color: Colors.white),
+      ),
+    ),
   ];
 
   void _onItemTapped(int index) {
@@ -32,6 +39,104 @@ class _EmployeeHomePageState extends State<EmployeeHomePage> {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
+  // Function to show the "Add Employee" modal
+  Future<void> _showAddEmployeeModal() async {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Employee'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  hintText: 'Enter the employee\'s name',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'Enter the employee\'s email',
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter a password',
+                ),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final email = emailController.text.trim();
+                final password = passwordController.text.trim();
+
+                if (name.isNotEmpty && email.isNotEmpty && password.isNotEmpty) {
+                  await _addEmployee(name, email, password);
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please fill all fields')),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Function to add an employee to Firebase
+  Future<void> _addEmployee(String name, String email, String password) async {
+    try {
+      // Create a new user in Firebase Authentication
+      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Get the UID of the newly created user
+      final String uid = userCredential.user!.uid;
+
+      // Save employee details to Firebase Realtime Database
+      await _database.child("Employees/$uid").set({
+        "name": name,
+        "email": email,
+        "role": "employee", // Automatically set role to "employee"
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Employee added successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,10 +148,6 @@ class _EmployeeHomePageState extends State<EmployeeHomePage> {
             width: 250, // Fixed width for the sidebar
             decoration: BoxDecoration(
               color: Colors.blue.shade800,
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
             ),
             child: Column(
               children: [
@@ -97,43 +198,17 @@ class _EmployeeHomePageState extends State<EmployeeHomePage> {
           Expanded(
             child: Container(
               padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
-                ),
-              ),
-              child: _pages[_selectedIndex],
+              decoration: BoxDecoration(),
+              child: _pages[_selectedIndex], // Display the selected page
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-// Placeholder for Reports Page
-class ReportsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Reports Page',
-        style: TextStyle(fontSize: 24, color: Colors.white),
-      ),
-    );
-  }
-}
-
-// Placeholder for User Verification Page
-class UserVerificationPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'User Verification Page',
-        style: TextStyle(fontSize: 24, color: Colors.white),
+      // Floating Action Button to add an employee
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddEmployeeModal,
+        child: Icon(Icons.add),
+        backgroundColor: Colors.blue.shade800,
       ),
     );
   }

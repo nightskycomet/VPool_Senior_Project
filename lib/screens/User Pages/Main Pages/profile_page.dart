@@ -29,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   // Fetch user data from Firebase Realtime Database
   Future<void> _fetchUserProfile() async {
     final snapshot = await _database.child("Users/$_userId").get();
-    
+
     if (snapshot.exists) {
       setState(() {
         _userData = Map<String, dynamic>.from(snapshot.value as Map);
@@ -43,8 +43,64 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Show a dialog to input the report reason
+  Future<void> _showReportDialog() async {
+    final reasonController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Report User'),
+          content: TextField(
+            controller: reasonController,
+            decoration: const InputDecoration(
+              hintText: 'Enter the reason for reporting this user',
+            ),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (reasonController.text.isNotEmpty) {
+                  await _submitReport(reasonController.text);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Submit the report to Firebase
+  Future<void> _submitReport(String reason) async {
+    final reportData = {
+      "reportedUserId": _userId,
+      "reporterId": _auth.currentUser!.uid,
+      "reason": reason,
+      "timestamp": ServerValue.timestamp,
+    };
+
+    // Generate a unique report ID using Firebase's push() method
+    final reportRef = _database.child("Reports").push();
+    await reportRef.set(reportData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Report submitted successfully')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isCurrentUser = _userId == _auth.currentUser!.uid;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Profile'),
@@ -110,6 +166,18 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Navigate to ride history page
                     },
                   ),
+                  // Report Button (only show if not viewing your own profile)
+                  if (!isCurrentUser)
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _showReportDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        ),
+                        child: const Text('Report User'),
+                      ),
+                    ),
                 ],
               ),
             ),
