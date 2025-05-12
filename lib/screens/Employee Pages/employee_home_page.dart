@@ -6,7 +6,7 @@ import 'package:vpool/screens/Employee%20Pages/reports_page.dart'; // Import the
 class EmployeeHomePage extends StatefulWidget {
   final String role;
 
-  const EmployeeHomePage({Key? key, required this.role}) : super(key: key);
+  const EmployeeHomePage({super.key, required this.role});
 
   @override
   _EmployeeHomePageState createState() => _EmployeeHomePageState();
@@ -207,8 +207,8 @@ class _EmployeeHomePageState extends State<EmployeeHomePage> {
       // Floating Action Button to add an employee
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddEmployeeModal,
-        child: Icon(Icons.add),
         backgroundColor: Colors.blue.shade800,
+        child: Icon(Icons.add),
       ),
     );
   }

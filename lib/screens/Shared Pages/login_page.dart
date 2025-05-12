@@ -77,7 +77,7 @@ class _LoginPageState extends State<LoginPage> {
 
         // Navigate to the appropriate page based on the user's role
         if (role == 'employee') {
-          // Redirect to EmployeeHomePage (if somehow an employee has Firebase Auth)
+          // Redirect to EmployeeHomePage 
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(

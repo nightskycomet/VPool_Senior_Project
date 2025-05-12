@@ -20,9 +20,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   final TextEditingController _messageController = TextEditingController();
-  List<Map<String, dynamic>> _messages = [];
+  final List<Map<String, dynamic>> _messages = [];
   String _chatTitle = "Loading...";
-  Map<String, String> _userNames = {}; // Map of user IDs to names
+  final Map<String, String> _userNames = {}; // Map of user IDs to names
 
   @override
   void initState() {
