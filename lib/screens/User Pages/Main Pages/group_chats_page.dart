@@ -100,8 +100,9 @@ class _GroupChatsPageState extends State<GroupChatsPage> {
 
     // Sort chats: employee chats first
     groupChats.sort((a, b) {
-      if (a["isEmployeeChat"] == true && b["isEmployeeChat"] == false)
+      if (a["isEmployeeChat"] == true && b["isEmployeeChat"] == false) {
         return -1;
+      }
       if (a["isEmployeeChat"] == false && b["isEmployeeChat"] == true) return 1;
       return 0;
     });

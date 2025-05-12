@@ -18,7 +18,8 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   bool _isLoading = true;
   final TextEditingController _messageController = TextEditingController();
   List<Map<String, dynamic>> _messages = [];
-  bool _isChatCreated = false; // Track if the chat has been created
+  bool _isChatCreated = false;
+  Map<String, String> _userNames = {}; // Stores user IDs to names mapping
 
   @override
   void initState() {
@@ -28,8 +29,47 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   @override
   void dispose() {
-    _messageController.dispose(); // Dispose the controller
+    _messageController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _fetchUserName(String userId) async {
+    try {
+      // Check Users node first
+      final userSnapshot = await _database.child("Users/$userId").get();
+      if (userSnapshot.exists) {
+        return userSnapshot.child("name").value.toString();
+      }
+
+      // If not found in Users, check Employees node
+      final employeeSnapshot = await _database.child("Employees/$userId").get();
+      if (employeeSnapshot.exists) {
+        return employeeSnapshot.child("name").value.toString();
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching user name: $e");
+      return null;
+    }
+  }
+
+  Future<Map<String, String>> _fetchUserNames(List<String> userIds) async {
+    final Map<String, String> names = {};
+    
+    for (final userId in userIds) {
+      if (userId.isEmpty) continue;
+      try {
+        final name = await _fetchUserName(userId);
+        if (name != null) {
+          names[userId] = name;
+        }
+      } catch (e) {
+        debugPrint("Error fetching name for $userId: $e");
+      }
+    }
+    
+    return names;
   }
 
   Future<void> _fetchReportDetails() async {
@@ -39,12 +79,25 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       if (mounted) {
         setState(() {
           _reportData = Map<String, dynamic>.from(snapshot.value as Map);
+        });
+      }
+
+      // Fetch names for reporter and reported user
+      final userIds = [
+        _reportData["reporterId"]?.toString(),
+        _reportData["reportedUserId"]?.toString(),
+      ].whereType<String>().toList();
+
+      final userNames = await _fetchUserNames(userIds);
+      
+      if (mounted) {
+        setState(() {
+          _userNames = userNames;
           _isLoading = false;
 
-          // Check if a chat already exists
           if (_reportData["chatId"] != null) {
             _isChatCreated = true;
-            _setupRealtimeListener(); // Set up real-time listener for messages
+            _setupRealtimeListener();
           }
         });
       }
@@ -69,6 +122,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           messages.add({
             "id": message.key,
             "senderId": message.child("senderId").value.toString(),
+            "senderName": message.child("senderName").value?.toString(),
             "message": message.child("message").value.toString(),
             "timestamp": message.child("timestamp").value.toString(),
           });
@@ -95,14 +149,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   }
 
   Future<void> _acceptReport() async {
-    // Show the punishment modal
     await _showPunishmentModal();
   }
 
   Future<void> _showPunishmentModal() async {
     final reasonController = TextEditingController();
     final durationController = TextEditingController();
-    String durationUnit = 's'; // Default unit: seconds
+    String durationUnit = 's';
 
     await showDialog(
       context: context,
@@ -181,44 +234,26 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   }
 
   Future<void> _punishUser(String reason, int duration, String unit) async {
-    // Calculate the punishment end time
     final now = DateTime.now();
     DateTime endTime;
 
     switch (unit) {
-      case 's':
-        endTime = now.add(Duration(seconds: duration));
-        break;
-      case 'm':
-        endTime = now.add(Duration(minutes: duration));
-        break;
-      case 'h':
-        endTime = now.add(Duration(hours: duration));
-        break;
-      case 'd':
-        endTime = now.add(Duration(days: duration));
-        break;
-      case 'w':
-        endTime = now.add(Duration(days: duration * 7));
-        break;
-      case 'mo':
-        endTime = now.add(Duration(days: duration * 30));
-        break;
-      case 'yr':
-        endTime = now.add(Duration(days: duration * 365));
-        break;
-      default:
-        endTime = now;
+      case 's': endTime = now.add(Duration(seconds: duration)); break;
+      case 'm': endTime = now.add(Duration(minutes: duration)); break;
+      case 'h': endTime = now.add(Duration(hours: duration)); break;
+      case 'd': endTime = now.add(Duration(days: duration)); break;
+      case 'w': endTime = now.add(Duration(days: duration * 7)); break;
+      case 'mo': endTime = now.add(Duration(days: duration * 30)); break;
+      case 'yr': endTime = now.add(Duration(days: duration * 365)); break;
+      default: endTime = now;
     }
 
-    // Update the report status
     await _database.child("Reports/${widget.reportId}").update({
       "status": "accepted",
       "punishmentReason": reason,
       "punishmentEndTime": endTime.millisecondsSinceEpoch,
     });
 
-    // Update the user's status (e.g., disable account)
     await _database.child("Users/${_reportData["reportedUserId"]}").update({
       "isDisabled": true,
       "disabledUntil": endTime.millisecondsSinceEpoch,
@@ -232,7 +267,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   Future<void> _createChat() async {
     final reporterId = _reportData["reporterId"];
-    final employeeId = await _fetchEmployeeId(); // Fetch employee UID
+    final employeeId = await _fetchEmployeeId();
 
     if (reporterId == null || employeeId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -241,11 +276,19 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       return;
     }
 
-    // Create a new chat for employee and reporter
+    // Get names for the chat participants
+    final names = await _fetchUserNames([reporterId, employeeId]);
+    final reporterName = names[reporterId] ?? "Reporter";
+    final employeeName = names[employeeId] ?? "Employee";
+
     final chatData = {
       "participants": {
         reporterId: true,
         employeeId: true,
+      },
+      "participantNames": {
+        reporterId: reporterName,
+        employeeId: employeeName,
       },
       "label": "Report Chat - ${widget.reportId}",
       "timestamp": ServerValue.timestamp,
@@ -263,12 +306,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
     await chatRef.set(chatData);
 
-    // Update the report with the chat ID
     await _database.child("Reports/${widget.reportId}").update({
       "chatId": chatId,
     });
 
-    // Set chat as created and fetch messages
     if (mounted) {
       setState(() {
         _isChatCreated = true;
@@ -276,7 +317,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       });
     }
 
-    // Set up real-time listener for messages
     _setupRealtimeListener();
   }
 
@@ -290,14 +330,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       return null;
     }
 
-    // Fetch the employee's data from the Employees node
     final employeeSnapshot = await _database.child("Employees/${currentUser.uid}").get();
-
     if (employeeSnapshot.exists) {
-      // Return the employee's UID
       return currentUser.uid;
     } else {
-      // If no employee is found, show an error
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: Employee not found in database')),
       );
@@ -307,18 +343,23 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   Future<void> _sendMessage() async {
     final chatId = _reportData["chatId"];
-    final employeeId = _auth.currentUser!.uid;
+    final employeeId = _auth.currentUser?.uid;
+    print(employeeId);
     final message = _messageController.text.trim();
 
-    if (chatId == null || message.isEmpty) {
+    if (chatId == null || employeeId == null || message.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: Missing chat ID or message')),
       );
       return;
     }
 
+    // Get the sender's name
+    final senderName = _userNames[employeeId] ?? "Employee";
+
     final messageData = {
       "senderId": employeeId,
+      "senderName": senderName,
       "message": message,
       "timestamp": ServerValue.timestamp,
     };
@@ -328,14 +369,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         .push()
         .set(messageData);
 
-    // Clear the message input
     _messageController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // Number of tabs
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Report Details'),
@@ -366,9 +406,12 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         Text('Reason: ${_reportData["reason"]}'),
                         const SizedBox(height: 16),
                         Text(
-                            'Reported User ID: ${_reportData["reportedUserId"]}'),
+                          'Reported User: ${_userNames[_reportData["reportedUserId"]] ?? _reportData["reportedUserId"]}',
+                        ),
                         const SizedBox(height: 16),
-                        Text('Reporter ID: ${_reportData["reporterId"]}'),
+                        Text(
+                          'Reporter: ${_userNames[_reportData["reporterId"]] ?? _reportData["reporterId"]}',
+                        ),
                         const SizedBox(height: 16),
                         Text(
                             'Timestamp: ${DateTime.fromMillisecondsSinceEpoch(_reportData["timestamp"]).toString()}'),
@@ -450,10 +493,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                 itemCount: _messages.length,
                                 itemBuilder: (context, index) {
                                   final message = _messages[index];
+                                  final senderName = message["senderName"] ?? 
+                                                    _userNames[message["senderId"]] ?? 
+                                                    message["senderId"];
+                                  
                                   return ListTile(
                                     title: Text(message["message"]),
-                                    subtitle:
-                                        Text('Sent by: ${message["senderId"]}'),
+                                    subtitle: Text('Sent by: $senderName'),
                                   );
                                 },
                               ),
