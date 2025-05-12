@@ -10,6 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  google_maps_flutter: ^2.5.0
+  flutter_polyline_points: ^2.0.0
+  location: ^5.0.0
+  shared_preferences: ^2.2.2
+  url_launcher: ^6.1.11
   uuid: ^4.4.2
   firebase_core: ^2.32.0
   firebase_auth: ^4.20.0
@@ -18,7 +23,6 @@ dependencies:
   http: ^1.3.0
   firebase_storage: any
   image_picker: any
-  fluttertoast: ^8.2.2 
 
 dev_dependencies:
   flutter_test:

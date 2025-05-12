@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vpool/screens/User%20Pages/Main%20Pages/add_ride_page.dart';
 import 'package:vpool/screens/User%20Pages/Main%20Pages/group_chats_page.dart';
-import 'package:vpool/screens/User%20Pages/Util%20Pages/map_page.dart';
 import 'package:vpool/screens/User%20Pages/Main%20Pages/rides_page.dart';
 import 'package:vpool/screens/User%20Pages/Miscellanous%20Pages/search_page.dart';
 import 'package:vpool/screens/User%20Pages/Util%20Pages/settings_page.dart';
@@ -27,7 +26,6 @@ class _HomePageState extends State<HomePage> {
       if (widget.role == 'rider' || widget.role == 'both') RidesPage(),
       if (widget.role == 'driver' || widget.role == 'both') AddRidePage(),
       GroupChatsPage(),
-      MapPage(),
       UserSearchPage(),
       SettingsPage(),
     ];
@@ -67,10 +65,6 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.group),
               label: 'Group Chats',
             ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Map',
-          ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.search),
             label: 'Search',

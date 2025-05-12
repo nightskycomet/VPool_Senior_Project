@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vpool/screens/User%20Pages/Miscellanous%20Pages/ride_details_page.dart';
+import 'package:vpool/pages/map_page.dart'; // Fixed import with lowercase 'm'
 
 class AddRidePage extends StatefulWidget {
   const AddRidePage({super.key});
@@ -142,33 +143,101 @@ class _AddRidePageState extends State<AddRidePage> {
                 },
               ),
               SizedBox(height: 16),
-              TextFormField(
-                controller: _startLocationController,
-                decoration: InputDecoration(
-                  labelText: 'Start Location',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the start location';
-                  }
-                  return null;
-                },
+              
+              // Modified Start Location field with map button
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _startLocationController,
+                      decoration: InputDecoration(
+                        labelText: 'Start Location',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter the start location';
+                        }
+                        return null;
+                      },
+                      readOnly: true, // Make it read-only since we'll set it via the map
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Navigate to map_page.dart and wait for result
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MapPage(),
+                        ),
+                      );
+                      
+                      // Check if we received a location result
+                      if (result != null && result is String) {
+                        setState(() {
+                          _startLocationController.text = result;
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade900,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Icon(Icons.map, color: Colors.white),
+                  ),
+                ],
               ),
+              
               SizedBox(height: 16),
-              TextFormField(
-                controller: _endLocationController,
-                decoration: InputDecoration(
-                  labelText: 'End Location',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the end location';
-                  }
-                  return null;
-                },
+              
+              // Modified End Location field with map button
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _endLocationController,
+                      decoration: InputDecoration(
+                        labelText: 'End Location',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter the end location';
+                        }
+                        return null;
+                      },
+                      readOnly: true, // Make it read-only since we'll set it via the map
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Navigate to map_page.dart and wait for result
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MapPage(),
+                        ),
+                      );
+                      
+                      // Check if we received a location result
+                      if (result != null && result is String) {
+                        setState(() {
+                          _endLocationController.text = result;
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade900,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Icon(Icons.map, color: Colors.white),
+                  ),
+                ],
               ),
+              
               SizedBox(height: 16),
               TextFormField(
                 controller: _startTimeController,

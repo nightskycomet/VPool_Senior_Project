@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart'; // Add this import
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+// Remove this import: import 'package:fluttertoast/fluttertoast.dart';
 import 'package:vpool/screens/User%20Pages/Main%20Pages/profile_page.dart';
 import 'ride_request_page.dart'; // Import the RideRequestPage
 
@@ -97,6 +99,16 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
     }
   }
 
+  Future<void> _openInMapsApp(LatLng start, LatLng end) async {
+  final url = 'https://www.google.com/maps/dir/?api=1&origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&travelmode=driving';
+  
+  if (await canLaunchUrl(Uri.parse(url))) {
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  } else {
+    throw 'Could not launch $url';
+  }
+}
+
   Future<void> _fetchPendingRequestsCount() async {
     final driverId = _auth.currentUser!.uid;
     final rideId = widget.ride["id"];
@@ -150,21 +162,22 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
         });
       }
 
-      // Show a toast notification
-      Fluttertoast.showToast(
-        msg: "Ride request sent!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
+      // Show a SnackBar notification instead of toast
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Ride request sent!"),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
       );
     } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Error: $e",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
+      // Show error SnackBar instead of toast
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
       );
     } finally {
       if (mounted) {
@@ -178,12 +191,13 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
     final driverId = widget.ride["driverId"];
 
     if (_riders.isEmpty) {
-      Fluttertoast.showToast(
-        msg: "No riders to create a group chat!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
+      // Show SnackBar instead of toast
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("No riders to create a group chat!"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
       );
       return;
     }
@@ -195,13 +209,13 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
       "messages": {},
     });
 
-    // Show a toast notification
-    Fluttertoast.showToast(
-      msg: "Group chat created!",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.green,
-      textColor: Colors.white,
+    // Show a SnackBar notification instead of toast
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Group chat created!"),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
     );
 
     if (mounted) {
