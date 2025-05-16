@@ -1,150 +1,260 @@
-// screens/ride_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../widgets/ride_map_view.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-class RideDetailsScreen extends StatelessWidget {
+class RideDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> ride;
-  
+
   const RideDetailsScreen({
     super.key,
     required this.ride,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Extract ride details
-    final LatLng startLocation = ride['startLocation'];
-    final LatLng endLocation = ride['endLocation'];
-    final String startAddress = ride['startAddress'] ?? 'Starting Point';
-    final String endAddress = ride['endAddress'] ?? 'Destination';
-    final String carModel = ride['carModel'] ?? 'Not specified';
-    final String availableSeats = ride['availableSeats']?.toString() ?? '0';
-    final String startTime = ride['startTime'] ?? 'Not specified';
-    final String gasMoney = ride['gasMoney'] ?? 'Not specified';
+  State<RideDetailsScreen> createState() => _RideDetailsScreenState();
+}
+
+class _RideDetailsScreenState extends State<RideDetailsScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseReference _rideRequestDatabase =
+      FirebaseDatabase.instance.ref().child('Ride_Request');
+  final DatabaseReference _groupChatsDatabase =
+      FirebaseDatabase.instance.ref().child('GroupChats');
+
+  bool _isLoading = false;
+  bool _hasRequested = false;
+  bool _isDriver = false;
+  bool _groupChatExists = false;
+  int _pendingRequestsCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfDriver();
+    _checkIfRequested();
+    _checkGroupChat();
+    _fetchPendingRequests();
+  }
+
+  Future<void> _checkIfDriver() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      setState(() {
+        _isDriver = widget.ride["driverId"] == currentUser.uid;
+      });
+    }
+  }
+
+  Future<void> _checkIfRequested() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      final snapshot = await _rideRequestDatabase
+          .orderByChild('userId')
+          .equalTo(currentUser.uid)
+          .get();
+
+      if (snapshot.exists) {
+        for (var request in snapshot.children) {
+          if (request.child("rideID").value == widget.ride["id"]) {
+            setState(() {
+              _hasRequested = true;
+            });
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _checkGroupChat() async {
+    final snapshot = await _groupChatsDatabase.child(widget.ride["id"]).get();
+    setState(() => _groupChatExists = snapshot.exists);
+  }
+
+  Future<void> _fetchPendingRequests() async {
+    if (!_isDriver) return;
     
+    final snapshot = await _rideRequestDatabase
+        .orderByChild('rideID')
+        .equalTo(widget.ride["id"])
+        .get();
+
+    if (snapshot.exists) {
+      int count = 0;
+      for (var request in snapshot.children) {
+        if (request.child("status").value == "pending") {
+          count++;
+        }
+      }
+      setState(() => _pendingRequestsCount = count);
+    }
+  }
+
+  Future<void> _requestToJoinRide() async {
+    if (_isDriver || _hasRequested || widget.ride["availableSeats"] <= 0) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _rideRequestDatabase.push().set({
+        "rideID": widget.ride["id"],
+        "userId": _auth.currentUser!.uid,
+        "driverId": widget.ride["driverId"],
+        "status": "pending",
+      });
+      setState(() => _hasRequested = true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _createGroupChat() async {
+    await _groupChatsDatabase.child(widget.ride["id"]).set({
+      "rideId": widget.ride["id"],
+      "driverId": widget.ride["driverId"],
+      "createdAt": DateTime.now().toString(),
+    });
+    setState(() => _groupChatExists = true);
+  }
+
+  Future<void> _openMaps(LatLng start, LatLng end) async {
+    final url =
+        'https://www.google.com/maps/dir/?api=1&origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final startLocation = LatLng(
+      double.parse(widget.ride['startLocation'].split(',')[0]),
+      double.parse(widget.ride['startLocation'].split(',')[1]),
+    );
+    final endLocation = LatLng(
+      double.parse(widget.ride['endLocation'].split(',')[0]),
+      double.parse(widget.ride['endLocation'].split(',')[1]),
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ride Details'),
+        title: const Text('Ride Details'),
         backgroundColor: Colors.blue.shade900,
       ),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Map view at the top
+            // Map Section
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: RideMapView(
                 startLocation: startLocation,
                 endLocation: endLocation,
-                startAddress: startAddress,
-                endAddress: endAddress,
-                height: 220.0,
-                interactive: false, // Smaller view with expand option
+                startAddress: widget.ride['startAddress'],
+                endAddress: widget.ride['endAddress'],
+                height: 220,
+                interactive: true,
               ),
             ),
-            
-            // Ride details
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDetailsRow(Icons.directions_car, 'Car Model', carModel),
-                      Divider(),
-                      _buildDetailsRow(Icons.event_seat, 'Available Seats', availableSeats),
-                      Divider(),
-                      _buildDetailsRow(Icons.access_time, 'Departure Time', startTime),
-                      Divider(),
-                      _buildDetailsRow(Icons.attach_money, 'Gas Money', gasMoney),
-                    ],
-                  ),
+
+            // Ride Details Card
+            Card(
+              margin: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildDetailRow(Icons.directions_car, 'Car Model', widget.ride['carModel']),
+                    const Divider(),
+                    _buildDetailRow(Icons.event_seat, 'Available Seats', widget.ride['availableSeats'].toString()),
+                    const Divider(),
+                    _buildDetailRow(Icons.access_time, 'Departure Time', widget.ride['startTime']),
+                    const Divider(),
+                    _buildDetailRow(Icons.attach_money, 'Gas Money', widget.ride['gasMoney']),
+                  ],
                 ),
               ),
             ),
-            
-            // Locations detail card
+
+            // Action Buttons
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Route',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade900,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      _buildLocationRow(
-                        Icons.trip_origin,
-                        'Start',
-                        startAddress,
-                        Colors.green,
-                      ),
-                      Container(
-                        margin: EdgeInsets.only(left: 12),
-                        height: 30,
-                        width: 1,
-                        color: Colors.grey.shade300,
-                      ),
-                      _buildLocationRow(
-                        Icons.location_on,
-                        'Destination',
-                        endAddress,
-                        Colors.red,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            
-            // Action buttons
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
+                  // Directions Button (always visible)
+                  SizedBox(
+                    width: double.infinity,
                     child: ElevatedButton.icon(
-                      icon: Icon(Icons.message),
-                      label: Text('Contact Driver'),
-                      onPressed: () {
-                        // Implement contact functionality
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade900,
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: Icon(Icons.directions),
-                      label: Text('Get Directions'),
-                      onPressed: () {
-                        // Open in maps app
-                        _openInMapsApp(startLocation, endLocation);
-                      },
+                      icon: const Icon(Icons.directions),
+                      label: const Text('Get Directions'),
+                      onPressed: () => _openMaps(startLocation, endLocation),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade700,
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  // Driver-specific buttons
+                  if (_isDriver) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.group_add),
+                        label: Text(_groupChatExists ? 'Chat Created' : 'Create Group Chat'),
+                        onPressed: _groupChatExists ? null : _createGroupChat,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade900,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.list_alt),
+                        label: Text(_pendingRequestsCount > 0 
+                            ? 'Requests ($_pendingRequestsCount)' 
+                            : 'View Requests'),
+                        onPressed: () {
+                          // Navigate to requests page
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade800,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                      ),
+                    ),
+                  ] 
+                  // Passenger button
+                  else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.white),
+                              )
+                            : const Icon(Icons.directions_car),
+                        label: Text(_hasRequested ? 'Request Sent' : 'Join Ride'),
+                        onPressed: (_isLoading || _hasRequested || widget.ride["availableSeats"] <= 0)
+                            ? null
+                            : _requestToJoinRide,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _hasRequested 
+                              ? Colors.grey 
+                              : Colors.blue.shade900,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -154,32 +264,20 @@ class RideDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailsRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          Icon(icon, color: Colors.blue.shade800, size: 22),
-          SizedBox(width: 12),
+          Icon(icon, color: Colors.blue.shade800),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text(label, style: TextStyle(color: Colors.grey.shade600)),
+                const SizedBox(height: 4),
+                Text(value, style: const TextStyle(fontSize: 16)),
               ],
             ),
           ),
@@ -187,56 +285,4 @@ class RideDetailsScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildLocationRow(IconData icon, String label, String address, Color iconColor) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: iconColor, size: 20),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                address,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _openInMapsApp(LatLng start, LatLng end) async {
-  final url = 'https://www.google.com/maps/dir/?api=1&origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&travelmode=driving';
-  
-  if (await canLaunchUrl(Uri.parse(url))) {
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-  } else {
-    throw 'Could not launch $url';
-  }
 }
-}
-
-

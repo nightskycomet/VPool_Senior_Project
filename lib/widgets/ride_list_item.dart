@@ -1,8 +1,8 @@
-// widgets/ride_list_item.dart
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../widgets/ride_map_view.dart';
-import './ride_details_screen.dart';
+import 'package:vpool/widgets/ride_map_view.dart';
+import 'package:vpool/widgets/ride_details_screen.dart';
+
 class RideListItem extends StatelessWidget {
   final Map<String, dynamic> ride;
   
@@ -11,18 +11,34 @@ class RideListItem extends StatelessWidget {
     required this.ride,
   });
 
+
+
+
+
   @override
   Widget build(BuildContext context) {
-    final LatLng startLocation = ride['startLocation'];
-    final LatLng endLocation = ride['endLocation'];
-    final String startAddress = ride['startAddress'] ?? 'Starting Point';
-    final String endAddress = ride['endAddress'] ?? 'Destination';
-    final String startTime = ride['startTime'] ?? 'Not specified';
-    final String availableSeats = ride['availableSeats']?.toString() ?? '0';
+    final startAddress = ride['startAddress'] ?? ride['startLocation'];
+    final endAddress = ride['endAddress'] ?? ride['endLocation'];
     
+    LatLng? startLocation;
+    LatLng? endLocation;
+    
+    try {
+      startLocation = LatLng(
+        double.parse(ride['startLocation'].split(',')[0]),
+        double.parse(ride['startLocation'].split(',')[1]),
+      );
+      endLocation = LatLng(
+        double.parse(ride['endLocation'].split(',')[0]),
+        double.parse(ride['endLocation'].split(',')[1]),
+      );
+    } catch (e) {
+      debugPrint('Error parsing ride locations: $e');
+    }
+
     return Card(
       elevation: 2,
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -45,17 +61,17 @@ class RideListItem extends StatelessWidget {
                       children: [
                         Text(
                           'From: $startAddress',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           'To: $endAddress',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -69,21 +85,21 @@ class RideListItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        startTime,
+                        ride['startTime'] ?? '',
                         style: TextStyle(
                           color: Colors.blue.shade900,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.green.shade100,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '$availableSeats seats available',
+                          '${ride['availableSeats']} seats available',
                           style: TextStyle(
                             color: Colors.green.shade800,
                             fontWeight: FontWeight.w500,
@@ -97,16 +113,19 @@ class RideListItem extends StatelessWidget {
               ),
             ),
             
-            // Small map preview
-            SizedBox(
-              height: 120,
-              child: RideMapView(
-                startLocation: startLocation,
-                endLocation: endLocation,
+            // Small map preview (only if we have valid locations)
+            if (startLocation != null && endLocation != null)
+              SizedBox(
                 height: 120,
-                interactive: false,
+                child: RideMapView(
+                  startLocation: startLocation,
+                  endLocation: endLocation,
+                  startAddress: startAddress,
+                  endAddress: endAddress,
+                  height: 120,
+                  interactive: false,
+                ),
               ),
-            ),
             
             // Action buttons
             Padding(
@@ -115,8 +134,8 @@ class RideListItem extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton.icon(
-                    icon: Icon(Icons.info_outline),
-                    label: Text('Details'),
+                    icon: const Icon(Icons.info_outline),
+                    label: const Text('Details'),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -126,10 +145,10 @@ class RideListItem extends StatelessWidget {
                       );
                     },
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
-                    icon: Icon(Icons.directions_car),
-                    label: Text('Join Ride'),
+                    icon: const Icon(Icons.directions_car),
+                    label: const Text('Join Ride'),
                     onPressed: () {
                       // Implement join ride functionality
                     },

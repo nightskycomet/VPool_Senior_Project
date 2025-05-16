@@ -1,11 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-// Remove this import: import 'package:fluttertoast/fluttertoast.dart';
+import 'package:vpool/widgets/ride_map_view.dart';
 import 'package:vpool/screens/User%20Pages/Main%20Pages/profile_page.dart';
-import 'ride_request_page.dart'; // Import the RideRequestPage
+import 'ride_request_page.dart';
 
 class RideDetailsPage extends StatefulWidget {
   final Map<String, dynamic> ride;
@@ -13,7 +13,7 @@ class RideDetailsPage extends StatefulWidget {
   const RideDetailsPage({super.key, required this.ride});
 
   @override
-  _RideDetailsPageState createState() => _RideDetailsPageState();
+  State<RideDetailsPage> createState() => _RideDetailsPageState();
 }
 
 class _RideDetailsPageState extends State<RideDetailsPage> {
@@ -28,17 +28,42 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
   bool _isLoading = false;
   bool _isDriver = false;
   bool _hasRequested = false;
-  bool _groupChatExists = false; // Track if a group chat already exists
-  String _driverName = "Loading...";
-  List<Map<String, String>> _riders =
-      []; // List of riders with their IDs and names
-  int _pendingRequestsCount = 0; // Track the number of pending requests
+  bool _groupChatExists = false;
+  String _driverName = "";
+  List<Map<String, String>> _riders = [];
+  int _pendingRequestsCount = 0;
 
   @override
   void initState() {
     super.initState();
     _initializeRideData();
-    _fetchPendingRequestsCount(); // Fetch the number of pending requests
+    _fetchPendingRequestsCount();
+  }
+
+  LatLng _parseLocation(dynamic locationData) {
+    if (locationData is String) {
+      // Handle cases where location might be an address
+      if (locationData.toLowerCase().contains('fiaa')) {
+        return const LatLng(33.8076, 35.6774); // Fiaa coordinates
+      }
+      if (locationData.toLowerCase().contains('beirut')) {
+        return const LatLng(33.8938, 35.5018); // Beirut coordinates
+      }
+
+      // Try to parse as coordinates
+      if (locationData.contains(',')) {
+        final parts = locationData.split(',');
+        if (parts.length == 2) {
+          return LatLng(
+            double.parse(parts[0].trim()),
+            double.parse(parts[1].trim()),
+          );
+        }
+      }
+    }
+
+    // If we get here, the format is invalid
+    throw FormatException('Invalid location format: $locationData');
   }
 
   Future<void> _initializeRideData() async {
@@ -46,26 +71,17 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
     final rideId = widget.ride["id"];
     final driverId = widget.ride["driverId"];
 
-    if (mounted) {
-      setState(() {
-        _isDriver = userId == driverId;
-      });
-    }
+    setState(() => _isDriver = userId == driverId);
 
-    // Fetch driver name
     final driverSnapshot =
         await _userDatabase.child(driverId).child("name").get();
     if (driverSnapshot.exists) {
-      if (mounted) {
-        setState(() {
-          _driverName = driverSnapshot.value.toString();
-        });
-      }
+      setState(() => _driverName = driverSnapshot.value.toString());
     }
 
-    // Fetch riders in the ride
     final ridersSnapshot =
         await _rideRequestDatabase.orderByChild("rideID").equalTo(rideId).get();
+
     if (ridersSnapshot.exists) {
       final riders = <Map<String, String>>[];
       for (var request in ridersSnapshot.children) {
@@ -74,40 +90,29 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
           final riderSnapshot =
               await _userDatabase.child(riderId).child("name").get();
           if (riderSnapshot.exists) {
-            riders.add({
-              "id": riderId,
-              "name": riderSnapshot.value.toString(),
-            });
+            riders.add({"id": riderId, "name": riderSnapshot.value.toString()});
           }
         }
       }
-      if (mounted) {
-        setState(() {
-          _riders = riders;
-        });
-      }
+      setState(() => _riders = riders);
     }
 
-    // Check if a group chat already exists
     final groupChatSnapshot = await _groupChatsDatabase.child(rideId).get();
-    if (groupChatSnapshot.exists) {
-      if (mounted) {
-        setState(() {
-          _groupChatExists = true;
-        });
-      }
-    }
+    setState(() => _groupChatExists = groupChatSnapshot.exists);
   }
 
-  Future<void> _openInMapsApp(LatLng start, LatLng end) async {
-  final url = 'https://www.google.com/maps/dir/?api=1&origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&travelmode=driving';
-  
-  if (await canLaunchUrl(Uri.parse(url))) {
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-  } else {
-    throw 'Could not launch $url';
+  Future<void> _openInMapsApp(String start, String end) async {
+    final url = 'https://www.google.com/maps/dir/?api=1'
+        '&origin=${Uri.encodeComponent(start)}'
+        '&destination=${Uri.encodeComponent(end)}'
+        '&travelmode=driving';
+
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      throw 'Could not launch maps';
+    }
   }
-}
 
   Future<void> _fetchPendingRequestsCount() async {
     final driverId = _auth.currentUser!.uid;
@@ -126,292 +131,332 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
           count++;
         }
       }
-      if (mounted) {
-        setState(() {
-          _pendingRequestsCount = count;
-        });
-      }
+      setState(() => _pendingRequestsCount = count);
     }
   }
 
   Future<void> _requestToJoinRide() async {
-    if (_isDriver || _hasRequested || widget.ride["availableSeats"] <= 0){ 
+    if (_isDriver || _hasRequested || widget.ride["availableSeats"] <= 0) {
       return;
     }
-      
 
-    if (mounted) {
-      setState(() => _isLoading = true);
-    }
-
-    final userId = _auth.currentUser!.uid;
-    final rideId = widget.ride["id"];
-    final driverId = widget.ride["driverId"];
+    setState(() => _isLoading = true);
 
     try {
       await _rideRequestDatabase.push().set({
-        "rideID": rideId,
-        "userId": userId,
-        "driverId": driverId,
+        "rideID": widget.ride["id"],
+        "userId": _auth.currentUser!.uid,
+        "driverId": widget.ride["driverId"],
         "status": "pending",
       });
 
-      if (mounted) {
-        setState(() {
-          _hasRequested = true;
-        });
-      }
-
-      // Show a SnackBar notification instead of toast
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Ride request sent!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      // Show error SnackBar instead of toast
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      setState(() => _hasRequested = true);
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _createGroupChat() async {
-    final rideId = widget.ride["id"];
-    final driverId = widget.ride["driverId"];
-
-    if (_riders.isEmpty) {
-      // Show SnackBar instead of toast
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("No riders to create a group chat!"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    await _groupChatsDatabase.child(rideId).set({
-      "rideId": rideId,
-      "driverId": driverId,
+    await _groupChatsDatabase.child(widget.ride["id"]).set({
+      "rideId": widget.ride["id"],
+      "driverId": widget.ride["driverId"],
       "riders": _riders.map((rider) => rider["id"]).toList(),
       "messages": {},
     });
+    setState(() => _groupChatExists = true);
+  }
 
-    // Show a SnackBar notification instead of toast
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Group chat created!"),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _openGoogleMaps(String start, String end) async {
+    try {
+      final url = Uri.parse('https://www.google.com/maps/dir/?api=1'
+          '&origin=${Uri.encodeComponent(start)}'
+          '&destination=${Uri.encodeComponent(end)}'
+          '&travelmode=driving');
 
-    if (mounted) {
-      setState(() {
-        _groupChatExists = true;
-      });
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not launch Google Maps")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final startAddress =
+        widget.ride['startAddress'] ?? widget.ride['startLocation'];
+    final endAddress = widget.ride['endAddress'] ?? widget.ride['endLocation'];
+
+    LatLng? startLocation;
+    LatLng? endLocation;
+
+    try {
+      startLocation = _parseLocation(widget.ride['startLocation']);
+      endLocation = _parseLocation(widget.ride['endLocation']);
+    } catch (e) {
+      debugPrint('Error parsing locations: $e');
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.ride["carModel"] ?? 'Ride Details'),
         backgroundColor: Colors.blue.shade900,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildRideInfoCard(),
-            SizedBox(height: 20),
-            _buildActionButton(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRideInfoCard() {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _infoRow(Icons.person, "Driver", _driverName, isClickable: true,
-                onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          ProfilePage(userId: widget.ride["driverId"])));
-            }),
-            _infoRow(Icons.location_on, "From", widget.ride["startLocation"]),
-            _infoRow(Icons.flag, "To", widget.ride["endLocation"]),
-            _infoRow(Icons.event_seat, "Seats Available",
-                widget.ride["availableSeats"].toString()),
-            _infoRow(Icons.access_time, "Start Time", widget.ride["startTime"]),
-            _infoRow(Icons.local_gas_station, "Gas Money",
-                widget.ride["gasMoney"] ?? "Not specified"),
-            if (_riders.isNotEmpty)
+            if (startLocation != null && endLocation != null)
               Padding(
-                padding: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.all(16.0),
+                child: RideMapView(
+                  startLocation: startLocation,
+                  endLocation: endLocation,
+                  startAddress: startAddress,
+                  endAddress: endAddress,
+                  height: 220,
+                  interactive: true,
+                ),
+              ),
+
+            // Location Display
+            ListTile(
+              leading: const Icon(Icons.location_pin, color: Colors.green),
+              title: Text("From: $startAddress"),
+              subtitle: startLocation != null
+                  ? Text(
+                      "Coordinates: ${startLocation.latitude.toStringAsFixed(4)}, "
+                      "${startLocation.longitude.toStringAsFixed(4)}")
+                  : null,
+            ),
+            ListTile(
+              leading: const Icon(Icons.flag, color: Colors.red),
+              title: Text("To: $endAddress"),
+              subtitle: endLocation != null
+                  ? Text(
+                      "Coordinates: ${endLocation.latitude.toStringAsFixed(4)}, "
+                      "${endLocation.longitude.toStringAsFixed(4)}")
+                  : null,
+            ),
+
+            // Ride Details Card
+            Card(
+              margin: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Riders:",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    ..._riders.map((rider) {
-                      return ListTile(
-                        leading:
-                            Icon(Icons.person, color: Colors.blue.shade900),
-                        title: Text(rider["name"]!),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ProfilePage(userId: rider["id"]!),
-                            ),
-                          );
-                        },
-                      );
-                    })
+                    _buildDetailRow(Icons.person, "Driver", _driverName,
+                        onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProfilePage(
+                                    userId: widget.ride["driverId"]),
+                              ),
+                            )),
+                    const Divider(),
+                    _buildDetailRow(Icons.directions_car, "Car",
+                        widget.ride["carModel"] ?? ''),
+                    const Divider(),
+                    _buildDetailRow(Icons.event_seat, "Seats",
+                        widget.ride["availableSeats"].toString()),
+                    const Divider(),
+                    _buildDetailRow(Icons.access_time, "Time",
+                        widget.ride["startTime"] ?? ''),
+                    const Divider(),
+                    _buildDetailRow(Icons.attach_money, "Gas Money",
+                        widget.ride["gasMoney"] ?? ''),
                   ],
                 ),
               ),
-            if (_isDriver)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceEvenly, // Space buttons evenly
-                  children: [
-                    // Create Group Chat Button
-                    ElevatedButton(
-                      onPressed: _groupChatExists || _riders.isEmpty
-                          ? null
-                          : _createGroupChat,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _groupChatExists || _riders.isEmpty
-                            ? Colors.grey
-                            : Colors.blue.shade900,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        _groupChatExists
-                            ? "Group Chat Created"
-                            : "Create Group Chat",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
+            ),
 
-                    // Ride Requests Button
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RideRequestPage(),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade900,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+            // Riders List
+            if (_riders.isNotEmpty) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("Riders:",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      )),
+                ),
+              ),
+              ..._riders.map((rider) => ListTile(
+                    leading: const Icon(Icons.person),
+                    title: Text(rider["name"]!),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfilePage(userId: rider["id"]!),
                       ),
-                      child: Text(
-                        _pendingRequestsCount > 0
-                            ? "View Requests ($_pendingRequestsCount)"
-                            : "View Requests",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  )),
+            ],
+
+            // Action Buttons
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  if (_isDriver) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _groupChatExists || _riders.isEmpty
+                                ? null
+                                : _createGroupChat,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade900,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                            ),
+                            child: Text(_groupChatExists
+                                ? "Chat Created"
+                                : "Create Group Chat"),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RideRequestPage(),
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade900,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                            ),
+                            child: Text(_pendingRequestsCount > 0
+                                ? "Requests ($_pendingRequestsCount)"
+                                : "View Requests"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        const SizedBox(width: 20),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.directions),
+                          label: const Text("Directions"),
+                          onPressed: () {
+                            final start = widget.ride['startAddress'] ??
+                                widget.ride['startLocation'];
+                            final end = widget.ride['endAddress'] ??
+                                widget.ride['endLocation'];
+                            _openGoogleMaps(start, end);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.directions_car),
+                        label:
+                            Text(_hasRequested ? "Request Sent" : "Join Ride"),
+                        onPressed: (_isLoading ||
+                                _hasRequested ||
+                                widget.ride["availableSeats"] <= 0)
+                            ? null
+                            : _requestToJoinRide,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _hasRequested
+                              ? Colors.grey
+                              : Colors.blue.shade900,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value,
-      {bool isClickable = false, VoidCallback? onTap}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: GestureDetector(
-        onTap: isClickable ? onTap : null,
+  Widget _buildDetailRow(IconData icon, String label, String value,
+      {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
           children: [
-            Icon(icon, color: Colors.blue.shade900),
-            SizedBox(width: 12),
-            Text("$label:",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            SizedBox(width: 8),
+            Icon(icon, color: Colors.blue.shade800),
+            const SizedBox(width: 15),
             Expanded(
-                child: Text(value,
-                    style: TextStyle(
-                        fontSize: 16,
-                        color: isClickable
-                            ? Colors.blue.shade900
-                            : Colors.black))),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  Text(value, style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionButton() {
-    final bool isDisabled = _isLoading ||
-        _hasRequested ||
-        _isDriver ||
-        widget.ride["availableSeats"] <= 0;
-
-    return Center(
-      child: ElevatedButton(
-        onPressed: isDisabled ? null : _requestToJoinRide,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDisabled ? Colors.grey : Colors.blue.shade900,
-          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+  Widget _buildLocationRow(
+      IconData icon, String label, String address, Color iconColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
         ),
-        child: _isLoading
-            ? CircularProgressIndicator(color: Colors.white)
-            : Text(
-                _hasRequested ? "Request Sent" : "Request to Join",
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(color: Colors.grey.shade600)),
+              const SizedBox(height: 4),
+              Text(address,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

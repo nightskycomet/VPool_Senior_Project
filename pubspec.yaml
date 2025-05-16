@@ -14,7 +14,7 @@ dependencies:
   flutter_polyline_points: ^2.0.0
   location: ^5.0.3
   shared_preferences: ^2.2.2
-  url_launcher: ^6.1.11
+  url_launcher: ^6.1.7
   uuid: ^4.4.2
   firebase_core: ^2.32.0
   firebase_auth: ^4.20.0

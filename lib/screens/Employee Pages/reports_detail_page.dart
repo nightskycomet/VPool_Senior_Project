@@ -56,7 +56,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   Future<Map<String, String>> _fetchUserNames(List<String> userIds) async {
     final Map<String, String> names = {};
-    
+
     for (final userId in userIds) {
       if (userId.isEmpty) continue;
       try {
@@ -68,7 +68,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         debugPrint("Error fetching name for $userId: $e");
       }
     }
-    
+
     return names;
   }
 
@@ -89,7 +89,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       ].whereType<String>().toList();
 
       final userNames = await _fetchUserNames(userIds);
-      
+
       if (mounted) {
         setState(() {
           _userNames = userNames;
@@ -122,7 +122,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           messages.add({
             "id": message.key,
             "senderId": message.child("senderId").value.toString(),
-            "senderName": message.child("senderName").value?.toString(),
+            "senderName": message.child("senderName").value.toString(),
             "message": message.child("message").value.toString(),
             "timestamp": message.child("timestamp").value.toString(),
           });
@@ -238,14 +238,29 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     DateTime endTime;
 
     switch (unit) {
-      case 's': endTime = now.add(Duration(seconds: duration)); break;
-      case 'm': endTime = now.add(Duration(minutes: duration)); break;
-      case 'h': endTime = now.add(Duration(hours: duration)); break;
-      case 'd': endTime = now.add(Duration(days: duration)); break;
-      case 'w': endTime = now.add(Duration(days: duration * 7)); break;
-      case 'mo': endTime = now.add(Duration(days: duration * 30)); break;
-      case 'yr': endTime = now.add(Duration(days: duration * 365)); break;
-      default: endTime = now;
+      case 's':
+        endTime = now.add(Duration(seconds: duration));
+        break;
+      case 'm':
+        endTime = now.add(Duration(minutes: duration));
+        break;
+      case 'h':
+        endTime = now.add(Duration(hours: duration));
+        break;
+      case 'd':
+        endTime = now.add(Duration(days: duration));
+        break;
+      case 'w':
+        endTime = now.add(Duration(days: duration * 7));
+        break;
+      case 'mo':
+        endTime = now.add(Duration(days: duration * 30));
+        break;
+      case 'yr':
+        endTime = now.add(Duration(days: duration * 365));
+        break;
+      default:
+        endTime = now;
     }
 
     await _database.child("Reports/${widget.reportId}").update({
@@ -265,35 +280,43 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     Navigator.pop(context);
   }
 
-  Future<void> _createChat() async {
-    final reporterId = _reportData["reporterId"];
-    final employeeId = await _fetchEmployeeId();
+ Future<void> _createChat() async {
+  final reporterId = _reportData["reporterId"]?.toString();
+  final employeeId = await _fetchEmployeeId();
 
-    if (reporterId == null || employeeId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: Missing user IDs')),
-      );
-      return;
-    }
+  if (reporterId == null || reporterId.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Error: Reporter ID is missing')),
+    );
+    return;
+  }
 
-    // Get names for the chat participants
-    final names = await _fetchUserNames([reporterId, employeeId]);
-    final reporterName = names[reporterId] ?? "Reporter";
-    final employeeName = names[employeeId] ?? "Employee";
+  if (employeeId == null || employeeId.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Error: Could not identify employee')),
+    );
+    return;
+  }
 
-    final chatData = {
-      "participants": {
-        reporterId: true,
-        employeeId: true,
-      },
-      "participantNames": {
-        reporterId: reporterName,
-        employeeId: employeeName,
-      },
-      "label": "Report Chat - ${widget.reportId}",
-      "timestamp": ServerValue.timestamp,
-    };
+  // Get names for the chat participants
+  final names = await _fetchUserNames([reporterId, employeeId]);
+  final reporterName = names[reporterId] ?? "Reporter";
+  final employeeName = names[employeeId] ?? "Employee";
 
+  final chatData = {
+    "participants": {
+      reporterId: true,
+      employeeId: true,
+    },
+    "participantNames": {
+      reporterId: reporterName,
+      employeeId: employeeName,
+    },
+    "label": "Report Chat - ${widget.reportId}",
+    "timestamp": ServerValue.timestamp,
+  };
+
+  try {
     final chatRef = _database.child("ReportChats").push();
     final chatId = chatRef.key;
 
@@ -318,24 +341,46 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     }
 
     _setupRealtimeListener();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error creating chat: ${e.toString()}')),
+    );
   }
-
+}
   Future<String?> _fetchEmployeeId() async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: Employee not authenticated')),
       );
-      Navigator.pushReplacementNamed(context, '/login');
       return null;
     }
 
-    final employeeSnapshot = await _database.child("Employees/${currentUser.uid}").get();
-    if (employeeSnapshot.exists) {
-      return currentUser.uid;
-    } else {
+    try {
+      // First check if the user exists in Employees node
+      final employeeSnapshot =
+          await _database.child("Employees/${currentUser.uid}").get();
+
+      if (employeeSnapshot.exists) {
+        return currentUser.uid;
+      }
+
+      // If not found in Employees, check Users node with employee role
+      final userSnapshot =
+          await _database.child("Users/${currentUser.uid}").get();
+      if (userSnapshot.exists &&
+          userSnapshot.child("role").value == "employee") {
+        return currentUser.uid;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: Employee not found in database')),
+      );
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching employee ID: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error checking employee status')),
       );
       return null;
     }
@@ -492,10 +537,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                 itemCount: _messages.length,
                                 itemBuilder: (context, index) {
                                   final message = _messages[index];
-                                  final senderName = message["senderName"] ?? 
-                                                    _userNames[message["senderId"]] ?? 
-                                                    message["senderId"];
-                                  
+                                  final senderName = message["senderName"] ??
+                                      _userNames[message["senderId"]] ??
+                                      message["senderId"];
+
                                   return ListTile(
                                     title: Text(message["message"]),
                                     subtitle: Text('Sent by: $senderName'),
