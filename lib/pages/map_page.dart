@@ -6,12 +6,8 @@ import 'package:location/location.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:http/http.dart' as http;
 import 'package:vpool/const.dart';
-import 'dart:math';
-import 'dart:convert';
 import 'package:uuid/uuid.dart';
-import 'dart:math' show min;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -45,7 +41,7 @@ static const LatLng _pApplePark = LatLng(34.4367, 35.8950);  // Different locati
   String _selectedAddress = "";
   String? _sessionToken; // For Place Autocomplete API
 
-  Map<PolylineId, Polyline> _polylines = {};
+  final Map<PolylineId, Polyline> _polylines = {};
   Set<Marker> _markers = {};
 
     bool _initialCameraMoved = false;
@@ -303,13 +299,13 @@ void _handleMapTap(LatLng position) {
     _isSearching = true;
   });
   
-  final CameraPosition _newCameraPosition = CameraPosition(
+  final CameraPosition newCameraPosition = CameraPosition(
     target: pos,
     zoom: 15,
   );
   
   await controller.animateCamera(
-    CameraUpdate.newCameraPosition(_newCameraPosition)
+    CameraUpdate.newCameraPosition(newCameraPosition)
   );
   
   // Reset searching flag after animation completes
@@ -323,21 +319,21 @@ void _handleMapTap(LatLng position) {
 }
 
   Future<void> getLocationUpdates() async {
-    bool _serviceEnabled;
-    PermissionStatus _permissionGranted;
+    bool serviceEnabled;
+    PermissionStatus permissionGranted;
 
-    _serviceEnabled = await _locationController.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await _locationController.requestService();
-      if (!_serviceEnabled) {
+    serviceEnabled = await _locationController.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await _locationController.requestService();
+      if (!serviceEnabled) {
         return;
       }
     }
 
-    _permissionGranted = await _locationController.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await _locationController.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
+    permissionGranted = await _locationController.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await _locationController.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) {
         return;
       }
     }

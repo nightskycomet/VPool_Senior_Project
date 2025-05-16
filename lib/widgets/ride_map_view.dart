@@ -14,14 +14,14 @@ class RideMapView extends StatefulWidget {
   final bool interactive;
 
   const RideMapView({
-    Key? key,
+    super.key,
     required this.startLocation,
     required this.endLocation,
     this.startAddress = 'Start',
     this.endAddress = 'Destination',
     this.height = 250.0,
     this.interactive = true,
-  }) : super(key: key);
+  });
 
   @override
   _RideMapViewState createState() => _RideMapViewState();
@@ -245,12 +245,12 @@ class FullScreenMap extends StatelessWidget {
   final String endAddress;
 
   const FullScreenMap({
-    Key? key,
+    super.key,
     required this.startLocation,
     required this.endLocation,
     required this.startAddress,
     required this.endAddress,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

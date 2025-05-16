@@ -3,14 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../widgets/ride_map_view.dart';
 import './ride_details_screen.dart';
-import '../screens/User Pages/Miscellanous Pages/ride_details_page.dart'
 class RideListItem extends StatelessWidget {
   final Map<String, dynamic> ride;
   
   const RideListItem({
-    Key? key,
+    super.key,
     required this.ride,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +98,7 @@ class RideListItem extends StatelessWidget {
             ),
             
             // Small map preview
-            Container(
+            SizedBox(
               height: 120,
               child: RideMapView(
                 startLocation: startLocation,

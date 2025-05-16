@@ -344,7 +344,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   Future<void> _sendMessage() async {
     final chatId = _reportData["chatId"];
     final employeeId = _auth.currentUser?.uid;
-    print(employeeId);
     final message = _messageController.text.trim();
 
     if (chatId == null || employeeId == null || message.isEmpty) {

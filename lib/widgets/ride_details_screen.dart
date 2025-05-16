@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../widgets/ride_map_view.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../widgets/ride_details_screen.dart';
 
 class RideDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> ride;
   
   const RideDetailsScreen({
-    Key? key,
+    super.key,
     required this.ride,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -239,3 +238,5 @@ class RideDetailsScreen extends StatelessWidget {
   }
 }
 }
+
+
