@@ -140,32 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     title: const Text('Phone Number'),
                     subtitle: Text(_userData["phoneNumber"] ?? 'No Phone Number'),
                   ),
-                  // Rating
-                  FutureBuilder<double>(
-                    future: _getUserRating(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return const Text("Error loading rating");
-                      }
-                      final rating = snapshot.data ?? 0.0;
-                      return ListTile(
-                        leading: const Icon(Icons.star),
-                        title: const Text('Average Rating'),
-                        subtitle: Text(rating.toStringAsFixed(1)),
-                      );
-                    },
-                  ),
-                  // Ride History
-                  ListTile(
-                    leading: const Icon(Icons.history),
-                    title: const Text('Ride History'),
-                    onTap: () {
-                      // Navigate to ride history page
-                    },
-                  ),
+
                   // Report Button (only show if not viewing your own profile)
                   if (!isCurrentUser)
                     Center(
@@ -182,25 +157,5 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
     );
-  }
-
-  // Fetch the user's average rating
-  Future<double> _getUserRating() async {
-    double totalRating = 0.0;
-    int ratingCount = 0;
-
-    final snapshot = await _database.child("Ratings/$_userId").get();
-    if (snapshot.exists) {
-      final ratings = Map<String, dynamic>.from(snapshot.value as Map);
-      ratings.forEach((key, value) {
-        totalRating += value["rating"];
-        ratingCount++;
-      });
-
-      if (ratingCount > 0) {
-        return totalRating / ratingCount; // Calculate average
-      }
-    }
-    return 0.0; // If no ratings found, return 0
   }
 }

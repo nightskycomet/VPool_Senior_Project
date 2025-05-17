@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:vpool/screens/User%20Pages/user_home_page.dart';
 import 'package:vpool/screens/Shared%20Pages/login_page.dart';
-import 'package:vpool/screens/Employee%20Pages/employee_home_page.dart'; // Import the EmployeeHomePage
-import 'firebase_options.dart'; // Generated file~
+import 'package:vpool/screens/Employee%20Pages/employee_home_page.dart'; 
+import 'firebase_options.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'VPool',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
