@@ -17,8 +17,3 @@ samples, guidance on mobile development, and a full API reference.
 
 
 
-
-To Do List:
-
-Add gender to registation
-add filtering rides once mapping is done
