@@ -86,6 +86,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       final userIds = [
         _reportData["reporterId"]?.toString(),
         _reportData["reportedUserId"]?.toString(),
+
       ].whereType<String>().toList();
 
       final userNames = await _fetchUserNames(userIds);
@@ -122,7 +123,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           messages.add({
             "id": message.key,
             "senderId": message.child("senderId").value.toString(),
-            "senderName": message.child("senderName").value.toString(),
             "message": message.child("message").value.toString(),
             "timestamp": message.child("timestamp").value.toString(),
           });
@@ -135,6 +135,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       }
     });
   }
+
 
   Future<void> _rejectReport(String reason) async {
     await _database.child("Reports/${widget.reportId}").update({
@@ -300,6 +301,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   // Get names for the chat participants
   final names = await _fetchUserNames([reporterId, employeeId]);
+
   final reporterName = names[reporterId] ?? "Reporter";
   final employeeName = names[employeeId] ?? "Employee";
 
@@ -399,11 +401,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     }
 
     // Get the sender's name
-    final senderName = _userNames[employeeId] ?? "Employee";
 
     final messageData = {
       "senderId": employeeId,
-      "senderName": senderName,
       "message": message,
       "timestamp": ServerValue.timestamp,
     };
@@ -537,9 +537,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                 itemCount: _messages.length,
                                 itemBuilder: (context, index) {
                                   final message = _messages[index];
-                                  final senderName = message["senderName"] ??
-                                      _userNames[message["senderId"]] ??
-                                      message["senderId"];
+                                  final senderName = _userNames[message["senderId"]] ?? 'Employee';
 
                                   return ListTile(
                                     title: Text(message["message"]),

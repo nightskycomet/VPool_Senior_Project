@@ -58,82 +58,85 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
   }
 
-Future<void> _fetchUserNames() async {
-  if (widget.isReportChat) {
-    // Fetch participants for report chat
-    final reportChatSnapshot = await _database
-        .child("ReportChats/${widget.chatId}/participants")
-        .get();
-    if (reportChatSnapshot.exists) {
-      for (var participantId in reportChatSnapshot.children) {
-        final userSnapshot = await _database
-            .child("Users/${participantId.key}")
-            .child("name")
-            .get();
-        if (userSnapshot.exists) {
-          final userName = userSnapshot.value.toString();
-          setState(() {
-            _userNames[participantId.key!] = userName;
-          });
-        }
-      }
-    }
-  } else {
-    // Fetch driver and riders for ride chat
-    final rideSnapshot =
-        await _database.child("Rides/${widget.chatId}").get();
-    if (rideSnapshot.exists) {
-      final driverId = rideSnapshot.child("driverId").value.toString();
-
-      // Fetch driver's name
-      final driverSnapshot =
-          await _database.child("Users/$driverId").child("name").get();
-      if (driverSnapshot.exists) {
-        final driverName = driverSnapshot.value.toString();
-        setState(() {
-          _userNames[driverId] = driverName;
-        });
-      }
-
-      // Fetch riders' names
-      final ridersSnapshot =
-          await _database.child("Rides/${widget.chatId}/riders").get();
-      if (ridersSnapshot.exists) {
-        for (var riderId in ridersSnapshot.children) {
+  Future<void> _fetchUserNames() async {
+    if (widget.isReportChat) {
+      // Fetch participants for report chat
+      final reportChatSnapshot = await _database
+          .child("ReportChats/${widget.chatId}/participantNames")
+          .get();
+      if (reportChatSnapshot.exists) {
+        for (var participantId in reportChatSnapshot.children) {
           final userSnapshot = await _database
-              .child("Users/${riderId.key}")
+              .child("Users/${participantId.key}")
               .child("name")
               .get();
           if (userSnapshot.exists) {
-            final riderName = userSnapshot.value.toString();
+            final userName = userSnapshot.value.toString();
             setState(() {
-              _userNames[riderId.key!] = riderName;
+              _userNames[participantId.key.toString()] = userName;
             });
+          }
+        }
+      }
+    } else {
+      // Fetch driver and riders for ride chat
+      final rideSnapshot =
+          await _database.child("Rides/${widget.chatId}").get();
+      if (rideSnapshot.exists) {
+        final driverId = rideSnapshot.child("driverId").value.toString();
+
+        // Fetch driver's name
+        final driverSnapshot =
+            await _database.child("Users/$driverId").child("name").get();
+        if (driverSnapshot.exists) {
+          final driverName = driverSnapshot.value.toString();
+          setState(() {
+            _userNames[driverId] = driverName;
+          });
+        }
+
+        // Fetch riders' names
+        final ridersSnapshot =
+            await _database.child("Rides/${widget.chatId}/riders").get();
+        if (ridersSnapshot.exists) {
+          for (var riderId in ridersSnapshot.children) {
+            final userSnapshot = await _database
+                .child("Users/${riderId.value}")
+                .child("name")
+                .get();
+            if (userSnapshot.exists) {
+              final riderName = userSnapshot.value.toString();
+              setState(() {
+                _userNames[riderId.value.toString()] = riderName;
+              });
+            }
           }
         }
       }
     }
   }
+
+ void _setupRealtimeListener() {
+  final messagesPath = widget.isReportChat
+      ? "ReportChats/${widget.chatId}/messages"
+      : "GroupChats/${widget.chatId}/messages";
+
+  _database.child(messagesPath).onChildAdded.listen((event) {
+    if (event.snapshot.value != null) {
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final message = {
+        "senderId": data["senderId"].toString(),
+        "message": data["message"].toString(),
+        "timestamp": data["timestamp"].toString(),
+      };
+
+      setState(() {
+        _messages.add(message);
+      });
+    }
+  });
 }
 
-  void _setupRealtimeListener() {
-    final messagesPath = widget.isReportChat
-        ? "ReportChats/${widget.chatId}/messages"
-        : "GroupChats/${widget.chatId}/messages";
-
-    _database.child(messagesPath).onChildAdded.listen((event) {
-      if (event.snapshot.exists) {
-        final messageData = event.snapshot.value as Map<dynamic, dynamic>;
-        setState(() {
-          _messages.add({
-            "senderId": messageData["senderId"].toString(),
-            "message": messageData["message"].toString(),
-            "timestamp": messageData["timestamp"].toString(),
-          });
-        });
-      }
-    });
-  }
 
   Future<void> _sendMessage() async {
     final userId = _auth.currentUser!.uid;
@@ -190,7 +193,7 @@ Future<void> _fetchUserNames() async {
               itemBuilder: (context, index) {
                 final message = _messages[index];
                 final senderName =
-                    _userNames[message["senderId"]] ?? "Unknown User";
+                    _userNames[message["senderId"]] ?? 'Employee';
                 return ListTile(
                   title: Text(message["message"]),
                   subtitle: Text('Sent by: $senderName'),
