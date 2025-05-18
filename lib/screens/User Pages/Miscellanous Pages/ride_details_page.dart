@@ -42,14 +42,6 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
 
   LatLng _parseLocation(dynamic locationData) {
     if (locationData is String) {
-      // Handle cases where location might be an address
-      if (locationData.toLowerCase().contains('fiaa')) {
-        return const LatLng(33.8076, 35.6774); // Fiaa coordinates
-      }
-      if (locationData.toLowerCase().contains('beirut')) {
-        return const LatLng(33.8938, 35.5018); // Beirut coordinates
-      }
-
       // Try to parse as coordinates
       if (locationData.contains(',')) {
         final parts = locationData.split(',');
@@ -271,6 +263,9 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                     const Divider(),
                     _buildDetailRow(Icons.attach_money, "Gas Money",
                         widget.ride["gasMoney"] ?? ''),
+                        const Divider(),
+                    _buildDetailRow(Icons.calendar_month, "Date",
+                        widget.ride["date"] ?? ''),
                   ],
                 ),
               ),

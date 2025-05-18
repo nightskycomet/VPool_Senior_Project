@@ -20,21 +20,21 @@ class _AddRidePageState extends State<AddRidePage> {
   final _endLocationController = TextEditingController();
   final _startTimeController = TextEditingController();
   final _gasMoneyController = TextEditingController();
+  final _dateController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
-  List<Map<String, dynamic>> _driverRides = []; // List of rides created by the driver
-  bool _isLoading = true; // Loading state
+  List<Map<String, dynamic>> _driverRides = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchDriverRides(); // Fetch rides when the page loads
+    _fetchDriverRides();
   }
 
   Future<void> _fetchDriverRides() async {
     final driverId = _auth.currentUser!.uid;
-
     final ridesSnapshot = await _database.child("Rides").orderByChild("driverId").equalTo(driverId).get();
     if (ridesSnapshot.exists) {
       final rides = <Map<String, dynamic>>[];
@@ -46,6 +46,7 @@ class _AddRidePageState extends State<AddRidePage> {
           "startTime": ride.child("startTime").value.toString(),
           "availableSeats": ride.child("availableSeats").value.toString(),
           "gasMoney": ride.child("gasMoney").value.toString(),
+          "date": ride.child("date").value.toString(),
           "driverId": ride.child("driverId").value.toString(),
         });
       }
@@ -65,7 +66,6 @@ class _AddRidePageState extends State<AddRidePage> {
       final driverId = _auth.currentUser!.uid;
 
       final availableSeats = int.tryParse(_availableSeatsController.text) ?? 0;
-      final gasMoney = _gasMoneyController.text;
 
       final rideData = {
         "availableSeats": availableSeats,
@@ -75,7 +75,8 @@ class _AddRidePageState extends State<AddRidePage> {
         "endLocation": _endLocationController.text,
         "startLocation": _startLocationController.text,
         "startTime": _startTimeController.text,
-        "gasMoney": gasMoney,
+        "gasMoney": _gasMoneyController.text,
+        "date": _dateController.text,
       };
 
       await _database.child("Rides/$rideId").set(rideData);
@@ -84,15 +85,15 @@ class _AddRidePageState extends State<AddRidePage> {
         const SnackBar(content: Text('Ride added successfully!')),
       );
 
-      // Clear the form and refresh the list of rides
       _availableSeatsController.clear();
       _carModelController.clear();
       _startLocationController.clear();
       _endLocationController.clear();
       _startTimeController.clear();
       _gasMoneyController.clear();
+      _dateController.clear();
 
-      await _fetchDriverRides(); // Refresh the list of rides
+      await _fetchDriverRides();
     }
   }
 
@@ -109,7 +110,6 @@ class _AddRidePageState extends State<AddRidePage> {
           key: _formKey,
           child: ListView(
             children: [
-              // Add Ride Form
               TextFormField(
                 controller: _availableSeatsController,
                 decoration: InputDecoration(
@@ -143,8 +143,6 @@ class _AddRidePageState extends State<AddRidePage> {
                 },
               ),
               SizedBox(height: 16),
-              
-              // Modified Start Location field with map button
               Row(
                 children: [
                   Expanded(
@@ -160,21 +158,16 @@ class _AddRidePageState extends State<AddRidePage> {
                         }
                         return null;
                       },
-                      readOnly: true, // Make it read-only since we'll set it via the map
+                      readOnly: true,
                     ),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () async {
-                      // Navigate to map_page.dart and wait for result
                       final result = await Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => MapPage(),
-                        ),
+                        MaterialPageRoute(builder: (context) => MapPage()),
                       );
-                      
-                      // Check if we received a location result
                       if (result != null && result is String) {
                         setState(() {
                           _startLocationController.text = result;
@@ -189,10 +182,7 @@ class _AddRidePageState extends State<AddRidePage> {
                   ),
                 ],
               ),
-              
               SizedBox(height: 16),
-              
-              // Modified End Location field with map button
               Row(
                 children: [
                   Expanded(
@@ -208,21 +198,16 @@ class _AddRidePageState extends State<AddRidePage> {
                         }
                         return null;
                       },
-                      readOnly: true, // Make it read-only since we'll set it via the map
+                      readOnly: true,
                     ),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () async {
-                      // Navigate to map_page.dart and wait for result
                       final result = await Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => MapPage(),
-                        ),
+                        MaterialPageRoute(builder: (context) => MapPage()),
                       );
-                      
-                      // Check if we received a location result
                       if (result != null && result is String) {
                         setState(() {
                           _endLocationController.text = result;
@@ -237,7 +222,6 @@ class _AddRidePageState extends State<AddRidePage> {
                   ),
                 ],
               ),
-              
               SizedBox(height: 16),
               TextFormField(
                 controller: _startTimeController,
@@ -256,12 +240,43 @@ class _AddRidePageState extends State<AddRidePage> {
               TextFormField(
                 controller: _gasMoneyController,
                 decoration: InputDecoration(
-                  labelText: 'Gas Money (e.g., \$in dollars or LBP)',
+                  labelText: 'Gas Money (e.g., \$ or LBP)',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the gas money amount';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _dateController,
+                decoration: InputDecoration(
+                  labelText: 'Date',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                readOnly: true,
+                onTap: () async {
+                  FocusScope.of(context).requestFocus(FocusNode());
+                  final DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(Duration(days: 365)),
+                  );
+                  if (pickedDate != null) {
+                    final formattedDate = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+                    setState(() {
+                      _dateController.text = formattedDate;
+                    });
+                  }
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select a date';
                   }
                   return null;
                 },
@@ -278,8 +293,6 @@ class _AddRidePageState extends State<AddRidePage> {
                   style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),
-
-              // Display Current Open Rides
               SizedBox(height: 32),
               Text(
                 'Your Current Open Rides',
@@ -303,7 +316,6 @@ class _AddRidePageState extends State<AddRidePage> {
                                 subtitle: Text(
                                     'Time: ${ride["startTime"]}\nSeats: ${ride["availableSeats"]}\nGas Money: ${ride["gasMoney"]}'),
                                 onTap: () {
-                                  // Navigate to RideDetailsPage
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
