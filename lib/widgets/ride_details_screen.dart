@@ -173,6 +173,7 @@ class _RideDetailsScreenState extends State<RideDetailsScreen> {
                     _buildDetailRow(Icons.access_time, 'Departure Time', widget.ride['startTime']),
                     const Divider(),
                     _buildDetailRow(Icons.attach_money, 'Gas Money', widget.ride['gasMoney']),
+                     _buildDetailRow(Icons.calendar_month, "Date", widget.ride["date"] ?? ''),
                   ],
                 ),
               ),

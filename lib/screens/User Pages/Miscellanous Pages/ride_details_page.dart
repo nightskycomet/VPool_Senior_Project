@@ -27,6 +27,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
 
   bool _isLoading = false;
   bool _isDriver = false;
+  bool _isRider = false;
   bool _hasRequested = false;
   bool _groupChatExists = false;
   String _driverName = "";
@@ -42,7 +43,6 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
 
   LatLng _parseLocation(dynamic locationData) {
     if (locationData is String) {
-      // Try to parse as coordinates
       if (locationData.contains(',')) {
         final parts = locationData.split(',');
         if (parts.length == 2) {
@@ -53,8 +53,6 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
         }
       }
     }
-
-    // If we get here, the format is invalid
     throw FormatException('Invalid location format: $locationData');
   }
 
@@ -63,7 +61,10 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
     final rideId = widget.ride["id"];
     final driverId = widget.ride["driverId"];
 
-    setState(() => _isDriver = userId == driverId);
+    setState(() {
+      _isDriver = userId == driverId;
+      _isRider = false; // Reset before checking
+    });
 
     final driverSnapshot =
         await _userDatabase.child(driverId).child("name").get();
@@ -79,6 +80,9 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
       for (var request in ridersSnapshot.children) {
         if (request.child("status").value == "accepted") {
           final riderId = request.child("userId").value.toString();
+          if (riderId == userId) {
+            setState(() => _isRider = true);
+          }
           final riderSnapshot =
               await _userDatabase.child(riderId).child("name").get();
           if (riderSnapshot.exists) {
@@ -128,7 +132,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
   }
 
   Future<void> _requestToJoinRide() async {
-    if (_isDriver || _hasRequested || widget.ride["availableSeats"] <= 0) {
+    if (_isDriver || _hasRequested || _isRider || widget.ride["availableSeats"] <= 0) {
       return;
     }
 
@@ -263,7 +267,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                     const Divider(),
                     _buildDetailRow(Icons.attach_money, "Gas Money",
                         widget.ride["gasMoney"] ?? ''),
-                        const Divider(),
+                    const Divider(),
                     _buildDetailRow(Icons.calendar_month, "Date",
                         widget.ride["date"] ?? ''),
                   ],
@@ -373,15 +377,15 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                                 ),
                               )
                             : const Icon(Icons.directions_car),
-                        label:
-                            Text(_hasRequested ? "Request Sent" : "Join Ride"),
-                        onPressed: (_isLoading ||
-                                _hasRequested ||
-                                widget.ride["availableSeats"] <= 0)
+                        label: Text(
+                          _isRider ? "Already Joined" 
+                          : _hasRequested ? "Request Sent" : "Join Ride",
+                        ),
+                        onPressed: (_isLoading || _hasRequested || _isRider || widget.ride["availableSeats"] <= 0)
                             ? null
                             : _requestToJoinRide,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _hasRequested
+                          backgroundColor: _isRider || _hasRequested
                               ? Colors.grey
                               : Colors.blue.shade900,
                           padding: const EdgeInsets.symmetric(vertical: 15),
